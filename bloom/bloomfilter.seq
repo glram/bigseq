@@ -1,0 +1,20 @@
+from bio import Kmer
+
+from lib.bitarray import bitarray
+from lib.mmh3 import hash
+
+class BloomFilter[M: int]:
+    bitarr: bitarray[M]
+    num_hashes: int
+
+    def __init__(self, num_hashes: int):
+        self.bitarr = bitarray[M]()
+        self.num_hashes = num_hashes
+
+    def __hashes[K](self, element: Kmer[K]):
+        return {hash(element, seed) % M for seed in range(num_hashes)}
+
+    def add[K](self, e: Kmer[K]):
+        for i in self.__hashes(e):
+            self.bitarr[i] = True
+            

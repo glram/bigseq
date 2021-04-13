@@ -1,0 +1,9 @@
+from bio import Kmer
+
+def bytearray[K: int](k: Kmer[K]) -> Array[byte]:
+    ret = Array[byte](((2*K)+7)//8)
+    working = k.x
+    for i in range(0, 2*K, 8):
+        ret[i // 8] = byte(int((working & UInt[2*K](0xFF))))
+        working = working >> UInt[2*K](8)
+    return ret

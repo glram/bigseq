@@ -1,0 +1,61 @@
+from bio import Kmer
+from bytearray import bytearray
+
+# Derived from https://github.com/wc-duck/pymmh3/blob/master/pymmh3.py
+
+def fmix(h: u32):
+    h ^= h >> u32(16)
+    h  = (h * u32(0x85ebca6b)) & u32(0xFFFFFFFF)
+    h ^= h >> u32(13)
+    h  = (h * u32(0xc2b2ae35)) & u32(0xFFFFFFFF)
+    h ^= h >> u32(16)
+    return h
+
+def b2u32(x: byte) -> u32:
+    return u32(int(x))
+
+def hash[K: int](key: Kmer[K], seed: int = 0x0):
+    arr = bytearray(key)
+
+    length = len(arr)
+    nblocks = length // 4
+
+    c1 = u32(0xcc9e2d51)
+    c2 = u32(0x1b873593)
+
+    k1 = u32(0x0)
+    h1 = u32(seed)
+
+    for block_start in range(0, nblocks * 4, 4):
+        k1 = b2u32(arr[block_start + 3]) << u32(24) | \
+             b2u32(arr[block_start + 2]) << u32(16) | \
+             b2u32(arr[block_start + 1]) << u32(8)  | \
+             b2u32(arr[block_start + 0])
+
+        k1 = c1 * k1
+        k1 = k1 << u32(15) | k1 >> u32(17) # inlined ROTL32
+        k1 = c2 * k1
+
+        h1 ^= k1
+        h1  = h1 << u32(13) | h1 >> u32(19) # inlined ROTL32
+        h1  = h1 * u32(5) + u32(0xe6546b64)
+
+    # tail
+    tail_index = nblocks * 4
+    k1 = u32(0x0)
+    tail_size = length & 3
+
+    if tail_size >= 3:
+        k1 ^= b2u32(arr[tail_index + 2]) << u32(16)
+    if tail_size >= 2:
+        k1 ^= b2u32(arr[tail_index + 1]) << u32(8)
+    if tail_size >= 1:
+        k1 ^= b2u32(arr[tail_index + 0])
+
+    if tail_size > 0:
+        k1  = k1 * c1
+        k1  = k1 << u32(15) | k1 >> u32(17) # inlined ROTL32
+        k1  = k1 * c2
+        h1 ^= k1
+
+    return fmix(h1 ^ u32(length))

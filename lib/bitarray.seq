@@ -1,0 +1,19 @@
+class bitarray[N: int]:
+    val: UInt[N]
+
+    def __init__(self) -> bitarray[N]:
+        self.val = 0
+        
+    def __init__(self, v):
+        self.val = UInt[N](v)
+
+    def __getitem__(self, index) -> bool:
+        mask = UInt[N](1) << UInt[N](index)
+        return (self.val & mask) != UInt[N](0)
+
+    def __setitem__(self, index, value):
+        mask = UInt[N](1) << UInt[N](index)
+        if value:
+            self.val = self.val | mask
+        else:
+            self.val = self.val & (~mask)
