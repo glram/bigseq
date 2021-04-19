@@ -4,8 +4,11 @@ class bitarray[N: int]:
     def __init__(self) -> bitarray[N]:
         self.val = 0
         
-    def __init__(self, v):
-        self.val = UInt[N](v)
+    def __init__(self, v: UInt[N] v):
+        self.val = v
+
+    def __len__(self) -> int:
+        return N
 
     def __getitem__(self, index) -> bool:
         mask = UInt[N](1) << UInt[N](index)
