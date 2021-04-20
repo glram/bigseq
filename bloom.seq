@@ -1,0 +1,20 @@
+import sys
+import os.path
+from bloomfilter import BloomFilter
+from bio import FASTA, seqs, Kmer, kmers
+
+K = Kmer[31]
+
+def run():
+  if len(sys.argv) != 3:
+    print 'Usage: seqc run bloom.seq <sequence> <out>'
+    return
+
+  fasta_file = sys.argv[1]
+
+  bloom = BloomFilter[1000](3)
+
+  FASTA(fasta_file) |> seqs |> kmers[K](1) |> bloom.add
+
+
+run()

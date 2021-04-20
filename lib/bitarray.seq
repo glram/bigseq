@@ -2,9 +2,9 @@ class bitarray[N: int]:
     val: UInt[N]
 
     def __init__(self) -> bitarray[N]:
-        self.val = 0
-        
-    def __init__(self, v: UInt[N] v):
+        self.val = UInt[N](0)
+
+    def __init__(self, v: UInt[N]):
         self.val = v
 
     def __len__(self) -> int:
