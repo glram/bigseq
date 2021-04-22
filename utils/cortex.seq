@@ -1,0 +1,103 @@
+import os
+
+from bio import Kmer
+
+class GraphReader[N: int]:
+  _file_name: str
+  _file: Optional[File]
+  record_size: Optional[int]
+
+  def __init__(self, graph_file):
+    self._file_name = graph_file
+
+  def __enter__(self):
+    self._file = open(self._file_name, "rb")
+    self.read_header()
+
+  def __exit__(self):
+    self._file.close()
+
+  def read_unsigned_int(self) -> int:
+    b = self._file.read(4)
+    ret = 0
+    for i in range(3, -1, -1):
+      ret = ret << 8
+      ret |= int(b.ptr[i])
+    return ret
+
+  def read_header(self):
+    """
+    Reads the header of the graph file.
+    """
+    magic_str = 'CORTEX'
+    b = self._file.read(len(magic_str))
+    if b != magic_str:
+        raise ValueError("File format mismatch")
+
+    version = self.read_unsigned_int()
+    if version != 6:
+      raise ValueError("File format version error; only 6 supported")
+
+
+    kmer_size = self.read_unsigned_int()
+    if kmer_size != N:
+      raise ValueError("Incorrect kmer size")
+
+    kmer_storage_size = 8 * self.read_unsigned_int()
+    num_colours = self.read_unsigned_int()
+    self.record_size = kmer_storage_size + 5 * num_colours
+
+    # skip per colour mean_read_length and total_sequence
+    skip = num_colours * 12
+    self._file.seek(skip, os.SEEK_CUR)
+    for j in range(num_colours):
+      v = self.read_unsigned_int()
+      self._file.seek(v, os.SEEK_CUR)
+
+    # skip per colour error rates
+    skip = num_colours * 16  # sizeof(long double)
+    self._file.seek(skip, os.SEEK_CUR)
+    for j in range(num_colours):
+      # skip cleaning counters
+      self._file.seek(12, os.SEEK_CUR)
+      v = self.read_unsigned_int()
+      self._file.seek(v, os.SEEK_CUR)
+
+    # header ends with the magic word
+    b = self._file.read(len(magic_str))
+    if b != magic_str:
+      raise ValueError("File format mismatch")
+
+    payload_start = self._file.tell()
+    self._file.seek(0, os.SEEK_END)
+    payload_size = self._file.tell() - payload_start
+    self._file.seek(payload_start, os.SEEK_SET)
+
+  def decode_record(self, buff: str) -> Kmer[N]:
+    be = reversed(buff)
+    x = UInt[N*2](0)
+    for i in range(N):
+      x = x << UInt[N*2](2)
+      m = (int(buff.ptr[i // 4]) >> ((i%4)*2)) & 3
+      x |= UInt[N*2](m)
+    return Kmer[N](int(x))
+
+  def read_next(self) -> Kmer[N]:
+    buf = self._file.read(self.record_size)
+    if len(buf) == 0:
+        raise StopIteration()
+    x = self.decode_record(buf)
+    return x
+
+  def __iter__(self):
+    try:
+      while True:
+        yield self.read_next()
+    except StopIteration:
+      pass
+
+def CTX[N: int](f: str):
+  with GraphReader[N](f) as reader:
+    for k in reader:
+      rev = ~k
+      yield k if k.x > rev.x else rev

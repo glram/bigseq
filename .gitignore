@@ -35,5 +35,6 @@
 *.fa
 *.fai
 *.fasta
+*.ctx
 
 *.bloom

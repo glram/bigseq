@@ -3,6 +3,7 @@ import os.path
 from lib import bytearray
 from bloomfilter import BloomFilter
 from bio import FASTA, seqs, Kmer, kmers
+from utils.cortex import CTX
 
 K = Kmer[31]
 
@@ -16,10 +17,10 @@ def run():
 
   bloom = BloomFilter[1000](3)
 
-  FASTA(fasta_file, fai=False) |> seqs |> kmers[K](1) |> bloom.add
+  CTX[31](fasta_file) |> bloom.add
 
   bytes = bloom.bitarr.bytes()
-  with open(out_file, 'w') as f:
+  with open(out_file, 'wb') as f:
     f.write_gen(str(bytes[i]) for i in range(len(bytes)))
 
 
