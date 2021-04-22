@@ -30,3 +30,10 @@
 *.exe
 *.out
 *.app
+
+# Inputs/Outputs
+*.fa
+*.fai
+*.fasta
+
+*.bloom

@@ -1,5 +1,6 @@
 import sys
 import os.path
+from lib import bytearray
 from bloomfilter import BloomFilter
 from bio import FASTA, seqs, Kmer, kmers
 
@@ -11,10 +12,15 @@ def run():
     return
 
   fasta_file = sys.argv[1]
+  out_file = sys.argv[2]
 
   bloom = BloomFilter[1000](3)
 
-  FASTA(fasta_file) |> seqs |> kmers[K](1) |> bloom.add
+  FASTA(fasta_file, fai=False) |> seqs |> kmers[K](1) |> bloom.add
+
+  bytes = bloom.bitarr.bytes()
+  with open(out_file, 'w') as f:
+    f.write_gen(str(bytes[i]) for i in range(len(bytes)))
 
 
 run()

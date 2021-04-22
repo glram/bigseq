@@ -15,7 +15,7 @@ def b2u32(x: byte) -> u32:
     return u32(int(x))
 
 def hash[K: int](key: Kmer[K], seed: int = 0x0):
-    arr = bytearray(key)
+    arr = bytearray(key.x)
 
     length = len(arr)
     nblocks = length // 4

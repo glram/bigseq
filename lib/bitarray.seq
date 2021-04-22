@@ -1,3 +1,5 @@
+from bytearray import bytearray
+
 class bitarray[N: int]:
     val: UInt[N]
 
@@ -20,3 +22,6 @@ class bitarray[N: int]:
             self.val = self.val | mask
         else:
             self.val = self.val & (~mask)
+
+    def bytes(self) -> Array[byte]:
+        return bytearray(self.val)
