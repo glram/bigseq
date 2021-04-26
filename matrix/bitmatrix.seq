@@ -2,7 +2,7 @@
 # export SEQPATH=/Library/Frameworks/Python.framework/Versions/3.7/Python
 
 
-# from bitarray import bitarray
+from ..lib.bitarray import bitarray
 from python import base.get_integer()->int
 from python import base.set_bitarrays()
 from python import base.get_bitarrays()
