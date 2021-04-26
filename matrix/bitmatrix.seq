@@ -5,7 +5,13 @@
 from ..lib.bitarray import bitarray
 from python import base.get_integer()->int
 from python import base.set_bitarrays()
+from python import base.set_bitarray()
 from python import base.get_bitarrays()
+from python import base.get_bitarray()
+from python import base.set_integer()
+from python import base.get_bits()
+from python import base.set_bits()
+from python import base.sync()
 
 NUM_ROWS_KEY = "number_of_rows"
 NUM_COLS_KEY = "number_of_cols"
