@@ -1,5 +1,7 @@
-# set these in the terminal
-# export SEQPATH=/Library/Frameworks/Python.framework/Versions/3.7/Python
+#  Charvi's terminal commands:
+# export PYTHONPATH=/Users/charvigopal/BIGSI/bigseq/storage
+# export SEQ_PYTHON=/Library/Frameworks/Python.framework/Versions/3.7/lib/libpython3.7.dylib
+
 
 
 from ..lib.bitarray import bitarray
