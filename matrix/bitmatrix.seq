@@ -1,17 +1,11 @@
-# set these in the terminal
-# export SEQPATH=/Library/Frameworks/Python.framework/Versions/3.7/Python
+#  Charvi's terminal commands:
+# export PYTHONPATH=/Users/charvigopal/BIGSI/bigseq/storage
+# export SEQ_PYTHON=/Library/Frameworks/Python.framework/Versions/3.7/lib/libpython3.7.dylib
+
 
 
 from ..lib.bitarray import bitarray
-from python import base.get_integer()->int
-from python import base.set_bitarrays()
-from python import base.set_bitarray()
-from python import base.get_bitarrays()
-from python import base.get_bitarray()
-from python import base.set_integer()
-from python import base.get_bits()
-from python import base.set_bits()
-from python import base.sync()
+from python import base
 
 NUM_ROWS_KEY = "number_of_rows"
 NUM_COLS_KEY = "number_of_cols"
@@ -19,14 +13,18 @@ NUM_COLS_KEY = "number_of_cols"
 class BitMatrix:
 
     """
-    Manages the gets and sets of the bitmatrix to the various storage backends. 
+    Manages the gets and sets of the bitmatrix to the various storage backends.
     Does not know the concept of a kmer.
     """
 
+    storage: pyobj
+    num_rows: int
+    num_cols: int
+
     def __init__(self, storage):
         self.storage = storage
-        self.num_rows = self.storage.get_integer(NUM_ROWS_KEY)
-        self.num_cols = self.storage.get_integer(NUM_COLS_KEY)
+        self.num_rows = int(self.storage.get_integer(NUM_ROWS_KEY))
+        self.num_cols = int(self.storage.get_integer(NUM_COLS_KEY))
 
     def create(cls, storage, rows, num_rows, num_cols):
         storage.set_bitarrays(range(num_rows), rows)

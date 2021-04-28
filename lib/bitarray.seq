@@ -6,6 +6,12 @@ class bitarray[N: int]:
     def __init__(self) -> bitarray[N]:
         self.val = UInt[N](0)
 
+    def __init__(self, x: Array[byte]):
+        assert len(x) == (N + 7) // 8
+        self.val = UInt[N](0)
+        for i in range(len(x)):
+            self.val |= UInt[N](int(x[i])) << (UInt[N](i*8))
+
     def __init__(self, v: UInt[N]):
         self.val = v
 
