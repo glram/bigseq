@@ -26,6 +26,7 @@ class BitMatrix[N: int]:
         self.num_rows = int(self.storage.get_integer(NUM_ROWS_KEY))
         self.num_cols = int(self.storage.get_integer(NUM_COLS_KEY))
 
+    # todo: how do we implement @classmethod in seq?
     def create(cls: BitMatrix,storage: pyobj, rows: Array[bitarray] , num_rows: int, num_cols:int )->BitMatrix[N]:
         storage.set_bitarrays(range(num_rows), rows)
         storage.set_integer(NUM_ROWS_KEY, num_rows)
