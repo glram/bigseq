@@ -5,7 +5,8 @@
 
 
 from ..lib.bitarray import bitarray
-from python import base
+#from python import base
+from ..storage.berkeleydb import BerkeleyDBStorage
 
 NUM_ROWS_KEY = "number_of_rows"
 NUM_COLS_KEY = "number_of_cols"
@@ -26,7 +27,7 @@ class BitMatrix[N: int]:
         self.num_rows = int(self.storage.get_integer(NUM_ROWS_KEY))
         self.num_cols = int(self.storage.get_integer(NUM_COLS_KEY))
 
-    def create(cls, storage, rows, num_rows, num_cols):
+    def create(cls: BitMatrix,storage: pyobj, rows: Array[bitarray] , num_rows: int, num_cols:int )->BitMatrix[N]:
         storage.set_bitarrays(range(num_rows), rows)
         storage.set_integer(NUM_ROWS_KEY, num_rows)
         storage.set_integer(NUM_COLS_KEY, num_cols)
@@ -82,3 +83,36 @@ class BitMatrix[N: int]:
         )
         if column_index >= self.num_cols:
             self.set_num_cols(self.num_cols + 1)
+
+
+
+BERKELEY_DB_STORAGE_CONFIG = {"filename": "test-berkeleydb"}
+PARAMETERS = {"k": 3, "m": 1000, "h": 3}
+BERKELEY_DB_CONFIG = {
+    "storage-engine": "berkeleydb",
+    "storage-config": BERKELEY_DB_STORAGE_CONFIG,
+    **PARAMETERS,
+}
+
+STORAGE_DICT = {"berkeleydb":BerkeleyDBStorage}
+storage = STORAGE_DICT[BERKELEY_DB_CONFIG["storage-engine"]](BERKELEY_DB_CONFIG["storage-config"])
+
+rows = [
+        bitarray("001"),
+        bitarray("001"),
+        bitarray("111"),
+        bitarray("001"),
+        bitarray("111"),
+    ] * 5
+
+
+storage.delete_all()
+bm = BitMatrix.create(storage, rows, len(rows), len(rows[0]))
+bm.set_rows(range(25), rows)
+assert list(bm.get_rows(range(3))) == rows[:3]
+assert bm.get_column(0) == bitarray("00101" * 5)
+assert bm.get_column(2) == bitarray("1" * 25)
+assert list(bm.get_columns([0, 2])) == [
+    bitarray("00101" * 5),
+    bitarray("1" * 25),
+]
