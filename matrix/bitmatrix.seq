@@ -5,7 +5,6 @@
 
 
 from ..lib.bitarray import bitarray
-#from python import base
 from ..storage.berkeleydb import BerkeleyDBStorage
 
 NUM_ROWS_KEY = "number_of_rows"
