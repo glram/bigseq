@@ -1,7 +1,7 @@
 
 import math
 from ..constants import DEFAULT_CONFIG
-from bigsi.decorators import convert_kmers_to_canonical
+from ..decorators import convert_kmers_to_canonical
 from bigsi.bloom import BloomFilter
 from bigsi.utils import convert_query_kmers
 from bigsi.utils import seq_to_kmers
