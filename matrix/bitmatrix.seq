@@ -33,10 +33,10 @@ class BitMatrix[N: int]:
         storage.sync()
         return cls(storage)
 
-    def get_row(self, row_index):
+    def get_row(self, row_index: int)->bitarray:
         return self.storage.get_bitarray(row_index)[: self.num_cols]
 
-    def get_rows(self, row_indexes, remove_trailing_zeros=True):
+    def get_rows(self, row_indexes: Array[int], remove_trailing_zeros=True)->Array[bitarray]:
         ## Only need to slice for merging (it's a lot slower)
         # Takes advantage of batching in storage engine if available
         bitarrays=self.storage.get_bitarrays(row_indexes)
@@ -45,18 +45,18 @@ class BitMatrix[N: int]:
         else:
             return bitarrays
 
-    def set_row(self, row_index, bitarray):
+    def set_row(self, row_index: int, bitarray: bitarray):
         return self.storage.set_bitarray(row_index, bitarray)
 
-    def set_rows(self, row_indexes, bitarrays):
+    def set_rows(self, row_indexes: Array[int], bitarrays: Array[bitarray]):
         # Takes advantage of batching in storage engine if available
         return self.storage.set_bitarrays(row_indexes, bitarrays)
 
-    def set_num_cols(self, num_cols):
+    def set_num_cols(self, num_cols:int):
         self.num_cols = num_cols
         self.storage.set_integer(NUM_COLS_KEY, self.num_cols)
 
-    def get_column(self, column_index):
+    def get_column(self, column_index:int)->bitarray:
         ## This is very slow, as we index row-wise. Need to know the number of rows, so must be done elsewhere
         return bitarray(
             "".join(
@@ -69,11 +69,11 @@ class BitMatrix[N: int]:
             )
         )
 
-    def get_columns(self, column_indexes):
+    def get_columns(self, column_indexes:Array[int])->Array[bitarray]:
         for column_index in column_indexes:
             yield self.get_column(column_index)
 
-    def insert_column(self, bitarray, column_index):
+    def insert_column(self, bitarray:bitarray, column_index:int):
         ## This is very slow, as we index row-wise
         self.storage.set_bits(
             list(range(len(bitarray))),
