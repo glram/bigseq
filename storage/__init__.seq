@@ -1,0 +1,8 @@
+
+
+from berkeleydb import BerkeleyDBStorage
+STORAGE_DICT={"berkeleydb": BerkeleyDBStorage(31)} # Todo- only works when we put in a number 
+
+
+def get_storage(config):
+    return STORAGE_DICT[config["storage-engine"]](config["storage-config"])

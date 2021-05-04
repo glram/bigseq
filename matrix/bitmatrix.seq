@@ -94,7 +94,7 @@ BERKELEY_DB_CONFIG = {
     **PARAMETERS,
 }
 
-STORAGE_DICT = {"berkeleydb":BerkeleyDBStorage}
+STORAGE_DICT = {"berkeleydb":BerkeleyDBStorage(31)}
 storage = STORAGE_DICT[BERKELEY_DB_CONFIG["storage-engine"]](BERKELEY_DB_CONFIG["storage-config"])
 
 rows = [

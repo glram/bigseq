@@ -1,16 +1,17 @@
 
 import math
 from ..constants import DEFAULT_CONFIG
-from ..decorators import convert_kmers_to_canonical
-from bigsi.bloom import BloomFilter
-from bigsi.utils import convert_query_kmers
-from bigsi.utils import seq_to_kmers
-from bigsi.utils import bitwise_and
-from bigsi.utils import non_zero_bitarrary_positions
-from bigsi.storage import get_storage
-from bigsi.scoring import Scorer
-from bigsi.constants import DEFAULT_NPROC
-from collections import OrderedDict
+#from ..decorators import convert_kmers_to_canonical
+from python import decorators
+from ..bloomfilter.bloomfilter import BloomFilter
+from python import utils.fncts
+from ..storage import get_storage
+from ..storage.berkeleydb import BerkeleyDBStorage
+from python import scoring.score.Scorer
+from ..constants import DEFAULT_NPROC
+#from collections import OrderedDict
+from ..matrix.bitmatrix import BitMatrix
+
 
 
 DELETION_SPECIAL_SAMPLE_NAME = "D3L3T3D"
@@ -82,7 +83,7 @@ def unpack_and_cat_bitarrays(bitarrays, j):
     #     return np.vstack(res)
 
 
-import json
+#import json
 
 
 class BigsiQueryResult:
@@ -115,11 +116,11 @@ class BigsiQueryResult:
             outd.update(self.score)
         return outd
 
-    def tojson(self):
-        return json.dumps(self.todict())
+#    def tojson(self):
+#        return json.dumps(self.todict())
 
-    def __repr__(self):
-        return self.tojson()
+#    def __repr__(self):
+#        return self.tojson()
 
     def __eq__(self, ob):
         return self.todict() == ob.todict()
@@ -134,14 +135,12 @@ class BIGSI:
             config = DEFAULT_CONFIG
         self.config = config
         self.storage = get_storage(config)
-        SampleMetadata.__init__(self, self.storage)
-        KmerSignatureIndex.__init__(self, self.storage)
         self.min_unique_kmers_in_query = (
             MIN_UNIQUE_KMERS_IN_QUERY
         )  ## TODO this can be inferred and set at build time
         self.scorer = Scorer(self.num_samples)
         self.bitmatrix = BitMatrix(storage)
-        self.bloomfilter_size = storage.get_integer(BLOOMFILTER_SIZE_KEY)
+        self.bloomfilter_size = BerkeleyDBStorage.get_integer(BLOOMFILTER_SIZE_KEY)
         self.num_hashes = storage.get_integer(NUM_HASH_FUNCTS_KEY)
 
 
