@@ -13,7 +13,7 @@ from ..constants import DEFAULT_NPROC
 from ..matrix.bitmatrix import BitMatrix
 
 
-
+BLOOMFILTER_SIZE_KEY = "ksi:bloomfilter_size"
 DELETION_SPECIAL_SAMPLE_NAME = "D3L3T3D"
 
 def validate_build_params(bloomfilters, samples):
@@ -139,7 +139,7 @@ class BIGSI:
             MIN_UNIQUE_KMERS_IN_QUERY
         )  ## TODO this can be inferred and set at build time
         self.scorer = Scorer(self.num_samples)
-        self.bitmatrix = BitMatrix(storage)
+        self.bitmatrix = BitMatrix(self.storage)
         self.bloomfilter_size = BerkeleyDBStorage.get_integer(BLOOMFILTER_SIZE_KEY)
         self.num_hashes = storage.get_integer(NUM_HASH_FUNCTS_KEY)
 

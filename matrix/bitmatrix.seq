@@ -17,7 +17,7 @@ class BitMatrix[N: int]:
     Does not know the concept of a kmer.
     """
 
-    storage: pyobj # BerkeleyDb[N]
+    storage: BerkeleyDBStorage[N]
     num_rows: int
     num_cols: int
 
@@ -27,12 +27,12 @@ class BitMatrix[N: int]:
         self.num_cols = int(self.storage.get_integer(NUM_COLS_KEY))
 
     # todo: how do we implement @classmethod in seq?
-    def create(cls: BitMatrix,storage: pyobj, rows: Array[bitarray] , num_rows: int, num_cols:int )->BitMatrix[N]:
+    def create(storage: BerkeleyDBStorage[N], rows: Array[bitarray] , num_rows: int, num_cols:int )->BitMatrix[N]:
         storage.set_bitarrays(range(num_rows), rows)
         storage.set_integer(NUM_ROWS_KEY, num_rows)
         storage.set_integer(NUM_COLS_KEY, num_cols)
         storage.sync()
-        return cls(storage)
+        return BitMatrix[N](storage)
 
     def get_row(self, row_index: int)->bitarray:
         return self.storage.get_bitarray(row_index)[: self.num_cols]
