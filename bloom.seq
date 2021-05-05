@@ -15,7 +15,7 @@ def run():
   fasta_file = sys.argv[1]
   out_file = sys.argv[2]
 
-  bloom = BloomFilter[1000](3)
+  bloom = BloomFilter(1000, 3)
 
   CTX[31](fasta_file) |> bloom.add
 

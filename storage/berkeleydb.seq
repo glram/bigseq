@@ -9,7 +9,7 @@ from python import os
 def none():
     return None
 
-class BerkeleyDBStorage[N: int]:
+class BerkeleyDBStorage:
     storage: pyobj
     filename: str
 
@@ -87,7 +87,7 @@ class BerkeleyDBStorage[N: int]:
         key = self.convert_to_string_key(key)
         return self[key]
 
-    def set_bitarray(self, key: str, value: bitarray[N]):
+    def set_bitarray(self, key: str, value: bitarray):
         _key = self.convert_to_bitarray_key(key)
         self[_key] = bytearray_to_str(value.bytes())
 
@@ -95,18 +95,18 @@ class BerkeleyDBStorage[N: int]:
         _keys = self.convert_bitarray_batch_keys(keys)
         self.batch_set(_keys, (bytearray_to_str(v.bytes()) for v in values))
 
-    def load_bitarray(self, _bytes: str) -> bitarray[N]:
-        return bitarray[N](str_to_bytearray(_bytes))
+    def load_bitarray(self, _bytes: str) -> bitarray:
+        return bitarray(str_to_bytearray(_bytes))
 
-    def get_bitarray(self, key: str) -> bitarray[N]:
+    def get_bitarray(self, key: str) -> bitarray:
         _key = self.convert_to_bitarray_key(key)
         value = self.load_bitarray(self[_key])
         return value
 
-    def get_bitarrays(self, keys) -> List[bitarray[N]]:
+    def get_bitarrays(self, keys) -> List[bitarray]:
         # Takes advantage of batching in storage engine if available
         _keys = self.convert_bitarray_batch_keys(keys)
-        return (self.load_bitarray(result) for result in self.batch_get(_keys))
+        return [self.load_bitarray(result) for result in self.batch_get(_keys)]
 
     def set_bit(self, key: str, pos: int, bit: bool):
         ba = self.get_bitarray(key)

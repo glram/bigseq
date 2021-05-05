@@ -1,33 +1,91 @@
 from bytearray import bytearray
 
-class bitarray[N: int]:
-    val: UInt[N]
+class bitarray:
+    sz: int
+    val: List[int]
 
-    def __init__(self) -> bitarray[N]:
-        self.val = UInt[N](0)
+    def __init__(self) -> bitarray:
+        self.sz = 0
+        self.val = List[int]()
+
+    def __init__(self, sz: int) -> bitarray:
+        self.sz = sz
+        self.val = [int(0) for _ in range((sz + 63) // 64)]
 
     def __init__(self, x: Array[byte]):
-        assert len(x) == (N + 7) // 8
-        self.val = UInt[N](0)
-        for i in range(len(x)):
-            self.val |= UInt[N](int(x[i])) << (UInt[N](i*8))
+        self.sz = len(x) * 8
+        self.val = List[int]()
 
-    def __init__(self, v: UInt[N]):
-        self.val = v
+        working = 0
+        num_bytes = 0
+        for i in range(len(x)):
+            v = x[i]
+
+            working |= (int(v) << (8*num_bytes))
+            num_bytes += 1
+
+            if num_bytes == 8:
+                self.val.append(working)
+                working = 0
+                num_bytes = 0
+        if num_bytes != 0:
+            self.val.append(working)
+
+    def __init__(self, x: str):
+        self.sz = len(x)
+        self.val = [0 for _ in range((self.sz + 63) // 64)]
+        for i, c in enumerate(x):
+            self[i] = (c == '1')
+
+    def __iter__(self):
+        return (self[i] for i in range(len(self)))
 
     def __len__(self) -> int:
-        return N
+        return self.sz
 
-    def __getitem__(self, index) -> bool:
-        mask = UInt[N](1) << UInt[N](index)
-        return (self.val & mask) != UInt[N](0)
+    def __getitem__(self, index: int) -> bool:
+        return (self.val[index // 64] & (1 << (index % 64))) != 0
 
-    def __setitem__(self, index, value):
-        mask = UInt[N](1) << UInt[N](index)
+    def __setitem__(self, index: int, value: bool):
+        if index > self.sz or index < 0:
+            raise IndexError('out of range')
+
+        mask = 1 << index % 64
         if value:
-            self.val = self.val | mask
+            self.val[index // 64] |= mask
         else:
-            self.val = self.val & (~mask)
+            self.val[index // 64] &= ~mask
+
+    def append(self, value: bool):
+        old = self.sz
+        if old + 1 > 64 * len(self.val):
+            self.val.append(0)
+        self.sz += 1
+        self[old] = value
 
     def bytes(self) -> Array[byte]:
-        return bytearray(self.val)
+        ret = Array[byte](len(self.val) * 8)
+        for i, b in enumerate(self.val):
+            s = i*8
+            w = b
+            for off in range(8):
+                ret[s+off] = byte(w & 255)
+                w = w >> 8
+        return ret
+
+    def prefix(self, s: int) -> bitarray:
+        ret = bitarray(s)
+        for i in range(s):
+            ret[i] = self[i]
+        return ret
+
+    def __eq__(self, other: bitarray) -> bool:
+        if self.sz != len(other):
+            return False
+        for i, x in enumerate(self.val):
+            if x != other.val[i]:
+                return False
+        return True
+
+    def __ne__(self, other: bitarray) -> bool:
+        return not (self == other)

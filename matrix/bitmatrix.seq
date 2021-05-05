@@ -2,100 +2,94 @@
 # export PYTHONPATH=/Users/charvigopal/BIGSI/bigseq/storage
 # export SEQ_PYTHON=/Library/Frameworks/Python.framework/Versions/3.7/lib/libpython3.7.dylib
 
-
-
 from ..lib.bitarray import bitarray
 from ..storage.berkeleydb import BerkeleyDBStorage
 
 NUM_ROWS_KEY = "number_of_rows"
 NUM_COLS_KEY = "number_of_cols"
 
-class BitMatrix[N: int]:
+def str_range(x: int):
+    return (str(i) for i in range(x))
+
+class BitMatrix:
 
     """
     Manages the gets and sets of the bitmatrix to the various storage backends.
     Does not know the concept of a kmer.
     """
 
-    storage: BerkeleyDBStorage[N]
+    storage: BerkeleyDBStorage
     num_rows: int
     num_cols: int
 
-    def __init__(self, storage):
+    def __init__(self, storage: BerkeleyDBStorage):
         self.storage = storage
         self.num_rows = int(self.storage.get_integer(NUM_ROWS_KEY))
         self.num_cols = int(self.storage.get_integer(NUM_COLS_KEY))
 
     # todo: how do we implement @classmethod in seq?
-    def create(storage: BerkeleyDBStorage[N], rows: Array[bitarray] , num_rows: int, num_cols:int )->BitMatrix[N]:
-        storage.set_bitarrays(range(num_rows), rows)
+    def create(storage: BerkeleyDBStorage,
+                       rows: List[bitarray],
+                       num_rows: int, num_cols: int) -> BitMatrix:
+        storage.set_bitarrays((str(x) for x in range(num_rows)), rows)
         storage.set_integer(NUM_ROWS_KEY, num_rows)
         storage.set_integer(NUM_COLS_KEY, num_cols)
         storage.sync()
-        return BitMatrix[N](storage)
+        return BitMatrix(storage)
 
-    def get_row(self, row_index: int)->bitarray:
-        return self.storage.get_bitarray(row_index)[: self.num_cols]
+    def get_row(self, row_index: int) -> bitarray:
+        return self.storage.get_bitarray(str(row_index))
 
-    def get_rows(self, row_indexes: Array[int], remove_trailing_zeros=True)->Array[bitarray]:
+    def get_rows(self, row_indexes, remove_trailing_zeros=True):
         ## Only need to slice for merging (it's a lot slower)
         # Takes advantage of batching in storage engine if available
-        bitarrays=self.storage.get_bitarrays(row_indexes)
+        bitarrays=self.storage.get_bitarrays((str(x) for x in row_indexes))
         if remove_trailing_zeros:
-            return (ba[: self.num_cols] for ba in bitarrays)
+            return [ba.prefix(self.num_cols) for ba in bitarrays]
         else:
             return bitarrays
 
     def set_row(self, row_index: int, bitarray: bitarray):
         return self.storage.set_bitarray(row_index, bitarray)
 
-    def set_rows(self, row_indexes: Array[int], bitarrays: Array[bitarray]):
+    def set_rows(self, row_indexes, bitarrays: List[bitarray]):
         # Takes advantage of batching in storage engine if available
-        return self.storage.set_bitarrays(row_indexes, bitarrays)
+        self.storage.set_bitarrays((str(x) for x in row_indexes), bitarrays)
 
-    def set_num_cols(self, num_cols:int):
+    def set_num_cols(self, num_cols: int):
         self.num_cols = num_cols
         self.storage.set_integer(NUM_COLS_KEY, self.num_cols)
 
-    def get_column(self, column_index:int)->bitarray:
+    def get_column(self, column_index: int)->bitarray:
         ## This is very slow, as we index row-wise. Need to know the number of rows, so must be done elsewhere
         return bitarray(
             "".join(
                 [
                     str(int(i))
                     for i in self.storage.get_bits(
-                        list(range(self.num_rows)), [column_index] * self.num_rows
+                        list(str_range(self.num_rows)), [column_index] * self.num_rows
                     )
                 ]
             )
         )
 
-    def get_columns(self, column_indexes:Array[int])->Array[bitarray]:
+    def get_columns(self, column_indexes):
         for column_index in column_indexes:
             yield self.get_column(column_index)
 
-    def insert_column(self, bitarray:bitarray, column_index:int):
+    def insert_column(self, ba: bitarray, column_index:int):
         ## This is very slow, as we index row-wise
         self.storage.set_bits(
-            list(range(len(bitarray))),
-            [column_index] * len(bitarray),
-            bitarray.tolist(),
+            list(range(len(ba))),
+            [column_index] * len(ba),
+            ba.tolist(),
         )
         if column_index >= self.num_cols:
             self.set_num_cols(self.num_cols + 1)
 
 
 
-BERKELEY_DB_STORAGE_CONFIG = {"filename": "test-berkeleydb"}
-PARAMETERS = {"k": 3, "m": 1000, "h": 3}
-BERKELEY_DB_CONFIG = {
-    "storage-engine": "berkeleydb",
-    "storage-config": BERKELEY_DB_STORAGE_CONFIG,
-    **PARAMETERS,
-}
-
-STORAGE_DICT = {"berkeleydb":BerkeleyDBStorage(31)}
-storage = STORAGE_DICT[BERKELEY_DB_CONFIG["storage-engine"]](BERKELEY_DB_CONFIG["storage-config"])
+storage = BerkeleyDBStorage('test_db')
 
 rows = [
         bitarray("001"),
@@ -105,14 +99,16 @@ rows = [
         bitarray("111"),
     ] * 5
 
-
 storage.delete_all()
 bm = BitMatrix.create(storage, rows, len(rows), len(rows[0]))
 bm.set_rows(range(25), rows)
 assert list(bm.get_rows(range(3))) == rows[:3]
 assert bm.get_column(0) == bitarray("00101" * 5)
 assert bm.get_column(2) == bitarray("1" * 25)
-assert list(bm.get_columns([0, 2])) == [
+
+x: List[bitarray] = [
     bitarray("00101" * 5),
     bitarray("1" * 25),
 ]
+y: List[bitarray] = [x for x in bm.get_columns([0, 2])]
+assert x == y

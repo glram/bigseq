@@ -7,16 +7,16 @@ def generate_hashes[K: int](element: Kmer[K], num_hashes: int, filter_size: int)
     return {int(hash(element, seed)) % filter_size for seed in range(num_hashes)}
 
 
-class BloomFilter[M: int]:
-    bitarr: bitarray[M]
+class BloomFilter:
+    bitarr: bitarray
     num_hashes: int
 
-    def __init__(self, num_hashes: int):
-        self.bitarr = bitarray[M]()
+    def __init__(self, bitarr_len: int, num_hashes: int):
+        self.bitarr = bitarray(bitarr_len)
         self.num_hashes = num_hashes
 
     def __hashes[K: int](self, element: Kmer[K]):
-        return generate_hashes(element, self.num_hashes, M)
+        return generate_hashes(element, self.num_hashes, len(self.bitarr))
 
     def add[K: int](self, e: Kmer[K]):
         for i in self.__hashes(e):
