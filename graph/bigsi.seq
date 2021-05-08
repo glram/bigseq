@@ -11,6 +11,8 @@ from python import scoring.score.Scorer
 from ..constants import DEFAULT_NPROC
 #from collections import OrderedDict
 from ..matrix.bitmatrix import BitMatrix
+from index import KmerSignatureIndex
+from metadata import SampleMetadata
 
 
 BLOOMFILTER_SIZE_KEY = "ksi:bloomfilter_size"
@@ -138,23 +140,18 @@ class BIGSI:
             config = DEFAULT_CONFIG
         self.config = config
         self.storage = get_storage(config)
+        self.sampleMetadata = SampleMetadata.__init__(self, self.storage)
+        self.kmerSignatureIndex = KmerSignatureIndex.__init__(self, self.storage)
         self.min_unique_kmers_in_query = (
             MIN_UNIQUE_KMERS_IN_QUERY
         )  ## TODO this can be inferred and set at build time
         self.scorer = Scorer(self.num_samples)
-        self.bitmatrix = BitMatrix(self.storage)
-        self.bloomfilter_size = BerkeleyDBStorage.get_integer(BLOOMFILTER_SIZE_KEY)
-        self.num_hashes = storage.get_integer(NUM_HASH_FUNCTS_KEY)
-        self.sampleMetadata = SampleMetadata.__init__(self, self.storage)
-        self.kmerSignatureIndex = KmerSignatureIndex.__init__(self, self.storage)
 
-
-    # todo: how do we implement @property in seq?
-    @property
+    # TODO: check whether removing property here works
     def kmer_size(self):
         return self.config["k"]
 
-    @property
+    # TODO: check whether removing property here works
     def nproc(self):
         return self.config.get("nproc", DEFAULT_NPROC)
 
@@ -282,8 +279,8 @@ class BIGSI:
     def seq_to_kmers(self, seq):
         return seq_to_kmers(seq, self.kmer_size)
 
-
-    self.sampleMetadata.colour_count_key()
+    def colour_count_key(self):
+        self.sampleMetadata.colour_count_key()
 
     @property
     def num_samples(self):
