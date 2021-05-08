@@ -7,6 +7,11 @@ from utils.cortex import CTX
 
 K = Kmer[31]
 
+# right now: seqc run bloom.seq .ctx output 
+# desired: seqc run bigseq.seq bloom .ctx output 
+# desired: seqc run bigseq.seq build ...
+# desired: seqc run bigseq.seq search string
+
 def run():
   if len(sys.argv) != 3:
     print 'Usage: seqc run bloom.seq <sequence> <out>'

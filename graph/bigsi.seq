@@ -130,6 +130,9 @@ class BigsiQueryResult:
 
 # todo: figure out seq inheritance?
 class BIGSI:
+    kmerSignatureIndex: KmerSignatureIndex
+    sampleMetadata: SampleMetadata
+
     def __init__(self, config=None):
         if config is None:
             config = DEFAULT_CONFIG
@@ -142,6 +145,8 @@ class BIGSI:
         self.bitmatrix = BitMatrix(self.storage)
         self.bloomfilter_size = BerkeleyDBStorage.get_integer(BLOOMFILTER_SIZE_KEY)
         self.num_hashes = storage.get_integer(NUM_HASH_FUNCTS_KEY)
+        self.sampleMetadata = SampleMetadata.__init__(self, self.storage)
+        self.kmerSignatureIndex = KmerSignatureIndex.__init__(self, self.storage)
 
 
     # todo: how do we implement @property in seq?
@@ -153,15 +158,13 @@ class BIGSI:
     def nproc(self):
         return self.config.get("nproc", DEFAULT_NPROC)
 
-    @classmethod
-    def bloom(cls, config, kmers):
+    def bloom(config, kmers):
         kmers = convert_query_kmers(kmers)  ## Convert to canonical kmers
         bloomfilter = BloomFilter(m=config["m"], h=config["h"])
         bloomfilter.update(kmers)
         return bloomfilter.bitarray
 
-    @classmethod
-    def build(cls, config, bloomfilters, samples):
+    def build(config, bloomfilters, samples):
         storage = get_storage(config)
         validate_build_params(bloomfilters, samples)
 
@@ -175,7 +178,7 @@ class BIGSI:
             config.get("low_mem_build", False),
         )
         storage.close()  ## Need to delete LOCK files before re init
-        return cls(config)
+        return BIGSI(config)
 
     def search(self, seq, threshold=1.0, score=False):
         self.__validate_search_query(seq)
@@ -280,9 +283,7 @@ class BIGSI:
         return seq_to_kmers(seq, self.kmer_size)
 
 
-    @property
-    def colour_count_key(self):
-        return "colour_count"
+    self.sampleMetadata.colour_count_key()
 
     @property
     def num_samples(self):
@@ -394,9 +395,7 @@ class BIGSI:
         if self.sample_name_exists(sample_name):
             raise ValueError("You can't insert two samples with the same name")
 
-
-    @classmethod
-    def create(cls, storage, bloomfilters, bloomfilter_size, num_hashes, lowmem=False):
+    def create(storage, bloomfilters, bloomfilter_size, num_hashes, lowmem=False):
         bloomfilters = [
             bf.bitarray if isinstance(bf, BloomFilter) else bf for bf in bloomfilters
         ]
@@ -408,7 +407,7 @@ class BIGSI:
         bitmatrix = BitMatrix.create(
             storage, rows, num_rows=bloomfilter_size, num_cols=len(bloomfilters)
         )
-        return cls(storage)
+        return BIGSI(storage)
 
     def lookup(self, kmers, remove_trailing_zeros=True):
         if isinstance(kmers, str):
