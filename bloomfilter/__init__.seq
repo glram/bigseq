@@ -1,1 +1,1 @@
-from bloomfilter import BloomFilter
+from bloomfilter import BloomFilter, generate_hashes

@@ -89,3 +89,15 @@ class bitarray:
 
     def __ne__(self, other: bitarray) -> bool:
         return not (self == other)
+
+    def __and__(self, other: bitarray) -> bitarray:
+        new_len = max(len(self), len(other))
+        ret = bitarray(new_len)
+
+        it_range = max(len(self.val), len(other.val))
+        for i in range(it_range):
+            left = self.val[i] if i < len(self.val) else 0
+            right = other.val[i] if i < len(other.val) else 0
+            ret[i] = left & right
+
+        return ret

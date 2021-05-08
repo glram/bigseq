@@ -1,0 +1,7 @@
+from ..lib.bitarray import bitarray
+
+def bitwise_and(bitarrays) -> bitarray:
+    ret = bitarrays[0]
+    for i in range(1, len(bitarrays)):
+      ret = ret & bitarrays[i]
+    return ret
