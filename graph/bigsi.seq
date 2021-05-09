@@ -7,7 +7,7 @@ from ..bloomfilter.bloomfilter import BloomFilter
 from python import utils.fncts
 from ..storage import get_storage
 from ..storage.berkeleydb import BerkeleyDBStorage
-from python import scoring
+from ..scoring.score import Scorer
 #from collections import OrderedDict
 from ..matrix.bitmatrix import BitMatrix
 from index import KmerSignatureIndex
@@ -124,7 +124,7 @@ class BIGSI:
         self.min_unique_kmers_in_query = (
             MIN_UNIQUE_KMERS_IN_QUERY
         )  ## TODO this can be inferred and set at build time
-        self.scorer = scoring.score.Scorer(self.num_samples)
+        self.scorer = Scorer(self.num_samples)
 
     def kmer_size(self):
         return self.config["k"]
