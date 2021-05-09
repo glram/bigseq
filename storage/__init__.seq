@@ -1,5 +1,5 @@
 from berkeleydb import BerkeleyDBStorage
-STORAGE_DICT={"berkeleydb": BerkeleyDBStorage[31]('test.db')} # Todo- only works when we put in a number
+STORAGE_DICT={"berkeleydb": BerkeleyDBStorage('test.db')} # Todo- only works when we put in a number
 
 
 def get_storage(config):
