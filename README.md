@@ -8,4 +8,9 @@ Benchmarking Procedure for BIGSI:
 
 Benchmarking Procedure for BIGSeq:
 
+how to run:
+- download seq 
+- pythonpath??? seqpath??
+- commands to run
+
 Team Members: Gabe Ramirez, Kaveri Nadhamuni, Charvi Gopal
