@@ -24,7 +24,6 @@ def validate_build_params(bloomfilters, samples):
         )
 
 MIN_UNIQUE_KMERS_IN_QUERY = 0
-B_ONE = b_one()
 
 def unpack_and_sum(bitarrays) -> List[int]:
     cumsum = [0 for _ in range(len(bitarrays[0]))]
