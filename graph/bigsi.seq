@@ -23,39 +23,18 @@ def validate_build_params(bloomfilters, samples):
             "There must be the same number of bloomfilters and sample names"
         )
 
-@python
-def b_one():
-    B_ONE = (1).to_bytes(1, byteorder="big")
-
 MIN_UNIQUE_KMERS_IN_QUERY = 0
 B_ONE = b_one()
 
-@python
-def unpack_and_sum(bitarrays):
-    import numpy as np
-    c = 0
+def unpack_and_sum(bitarrays) -> List[int]:
+    cumsum = [0 for _ in range(len(bitarrays[0]))]
     for bitarry in bitarrays:
-        if c == 0:
-            cumsum = np.fromstring(bitarry.unpack(one=B_ONE), dtype="i1").astype("i4")
-        else:
-            l = np.fromstring(bitarry.unpack(one=B_ONE), dtype="i1").astype("i4")
-            cumsum = np.add(cumsum, l)
-        c += 1
+        for i, c in enumerate(bitarry):
+            cumsum[i] += int(c)
     return cumsum
 
-@python
-def unpack_and_cat(bitarrays):
-    import numpy as np
-    c = 0
-    for bitarray in bitarrays:
-        if c == 0:
-            X = np.fromstring(bitarray.unpack(one=B_ONE), dtype="i1").astype("i4")
-        else:
-            l = np.fromstring(bitarray.unpack(one=B_ONE), dtype="i1").astype("i4")
-            X = np.vstack([X, l])
-        c += 1
-    return X
-
+def unpack_and_cat(bitarrays) -> List[int]:
+    return [[int(v) for v in ba] for ba in bitarrays]
 
 def chunks(l, n):
     n = max(1, n)
@@ -97,7 +76,7 @@ class BigsiQueryResult:
 
     def __init__(self, colour, sample_name, num_kmers_found, num_kmers):
 
-        PERCENT_KMERS_FOUND_KEY = "percent_kmers_found"       
+        PERCENT_KMERS_FOUND_KEY = "percent_kmers_found"
         NUM_KMERS_KEY = "num_kmers"
         NUM_KMERS_FOUND_KEY = "num_kmers_found"
         SAMPLE_KEY = "sample_name"
@@ -274,7 +253,7 @@ class BIGSI:
         else:
             print("Query string should contain at least %i unique kmers. Your query contained %i unique kmers, and as a result the false discovery rate may be high. In future this will become an error."
                 % (self.min_unique_kmers_in_query, len(kmers)))
-            
+
 
     # def seq_to_kmers(self, seq):
     #     return fncts.seq_to_kmers(seq, self.kmer_size)
