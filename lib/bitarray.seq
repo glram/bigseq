@@ -79,6 +79,12 @@ class bitarray:
             ret[i] = self[i]
         return ret
 
+    def suffix(self, s: int) -> bitarray:
+        ret = bitarray(len(self) - s)
+        for i in range(s, len(s)):
+            ret[i - s] = self[i]
+        return ret
+
     def __eq__(self, other: bitarray) -> bool:
         if self.sz != len(other):
             return False

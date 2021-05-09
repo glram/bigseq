@@ -1,14 +1,16 @@
-from lib.bitarray import bitarray
+from ..lib.bitarray import bitarray
 import math
 
-def remove_short_ones[N](s: bitarray[N]) -> bitarray[N]:
+def remove_short_ones(s: bitarray) -> bitarray:
     if len(s) < 3:
         return s
 
     ba = s.val
-    ba2 = (ba << UInt[N](1)) |= UInt[N](1)
-    ba3 = (ba2 << UInt[N](1)) |= UInt[N](1)
-    return bitarray(ba & ba2 & ba3)
+    ba2 = ba.suffix(1)
+    ba2.append(True)
+    ba3 = ba2.suffix(1)
+    ba3.append(True)
+    return ba & ba2 & ba3
 
 def tabulate_score(ss) -> Dict[int, List[int]]:
     sc: Dict[int, List[int]] = {0: [], 1: []}
@@ -28,7 +30,7 @@ def tabulate_score(ss) -> Dict[int, List[int]]:
 class Scorer:
     DB_SIZE: int
     MATCH: int
-    MISMATCH: 2
+    MISMATCH: int
     LAMBDA_UNGAPPED: float
     K_UNGAPPED: float
     LAMBDA_GAPPED: float
@@ -95,7 +97,7 @@ class Scorer:
             ),
         }
 
-    def score[N](self, s: bitarray[N]) -> Dict[str, float]:
+    def score(self, s: bitarray) -> Dict[str, float]:
         ss = remove_short_ones(s)
         max_possible_score = len(ss)
         seq_len = max_possible_score + 31 - 1
@@ -117,7 +119,7 @@ class Scorer:
         score_dict["log_pvalue"] = round(self.log_pvalue(score_dict["log_evalue"]), 2)
         return score_dict
 
-    def bitscore[N](self, s: bitarray[N]) -> float:
+    def bitscore(self, s: bitarray) -> float:
         scored = self.score(s)
         score = scored.get("score")
         l = self.LAMBDA_UNGAPPED
@@ -143,6 +145,7 @@ class Scorer:
 
     def log_pvalue(self, log_evalue) -> float:
         evalue = 10 ** log_evalue
+        logp = 0.0
         if 1 - math.exp(-evalue) > 0:
             logp = math.log10(1 - math.exp(-evalue))
         else:
