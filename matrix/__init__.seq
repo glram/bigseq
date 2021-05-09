@@ -1,2 +1,2 @@
-from bitmatrix import bitmatrix
+from bitmatrix import BitMatrix
 from transpose import transpose

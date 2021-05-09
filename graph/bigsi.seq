@@ -147,16 +147,14 @@ class BIGSI:
         )  ## TODO this can be inferred and set at build time
         self.scorer = Scorer(self.num_samples)
 
-    # TODO: check whether removing property here works
     def kmer_size(self):
         return self.config["k"]
 
-    # TODO: check whether removing property here works
     def nproc(self):
         return self.config.get("nproc", DEFAULT_NPROC)
 
     def bloom(config, kmers):
-        kmers = convert_query_kmers(kmers)  ## Convert to canonical kmers
+        kmers = fncts.convert_query_kmers(kmers)  ## Convert to canonical kmers
         bloomfilter = BloomFilter(m=config["m"], h=config["h"])
         bloomfilter.update(kmers)
         return bloomfilter.bitarray
@@ -183,6 +181,7 @@ class BIGSI:
         kmers = list(self.seq_to_kmers(seq))
         kmers_to_colours = self.lookup(kmers, remove_trailing_zeros=False)
         min_kmers = math.ceil(len(set(kmers)) * threshold)
+        results = self.exact_filter(kmers_to_colours)
         if threshold == 1.0:
             results = self.exact_filter(kmers_to_colours)
         else:
@@ -196,8 +195,8 @@ class BIGSI:
         ]
 
     def exact_filter(self, kmers_to_colours):
-        colours_with_all_kmers = non_zero_bitarrary_positions(
-            bitwise_and(kmers_to_colours.values())
+        colours_with_all_kmers = fncts.non_zero_bitarrary_positions(
+            fncts.bitwise_and(kmers_to_colours.values())
         )
         samples = self.get_sample_list(colours_with_all_kmers)
         return [
@@ -276,172 +275,152 @@ class BIGSI:
                 % (self.min_unique_kmers_in_query, len(kmers)))
             
 
-    def seq_to_kmers(self, seq):
-        return seq_to_kmers(seq, self.kmer_size)
+    # def seq_to_kmers(self, seq):
+    #     return fncts.seq_to_kmers(seq, self.kmer_size)
 
-    def colour_count_key(self):
-        self.sampleMetadata.colour_count_key()
+    # def colour_count_key(self):
+    #     self.sampleMetadata.colour_count_key()
 
-    @property
-    def num_samples(self):
-        try:
-            return self._get_integer(self.colour_count_key)
-            # we could distinguish between the number of samples,
-            # and the number of colours,
-            # but it adds unuseful complexity
-        except KeyError:
-            return 0
+    # def num_samples(self):
+    #     self.sampleMetadata.num_samples()
 
-    def add_sample(self, sample_name):
-        self._validate_sample_name(sample_name)
-        colour = self.num_samples
-        self._set_sample_colour(sample_name, colour)
-        self._set_colour_sample(colour, sample_name)
-        return self._increment_colour_count()
+    # def add_sample(self, sample_name):
+    #     self.sampleMetadata.add_sample(sample_name)
 
-    def add_samples(self, sample_names):
-        for sample_name in sample_names:
-            self.add_sample(sample_name)
+    # def add_samples(self, sample_names):
+    #     self.sampleMetadata.add_samples(sample_names)
 
-    def delete_sample(self, sample_name):
-        ## Deleting samples just changes it's name to a reserved deleted string
-        colour = self.sample_to_colour(sample_name)
-        self._set_colour_sample(colour, DELETION_SPECIAL_SAMPLE_NAME)
-        self._set_sample_colour(sample_name, -1)
-        ## We don't decrement the count, as the number of colours is the same
+    # def delete_sample(self, sample_name):
+    #     self.sampleMetadata.delete_sample(sample_name)
 
-    def sample_name_exists(self, sample_name):
-        try:
-            self._get_integer(sample_name)
-            return True
-        except KeyError:
-            return False
+    # def sample_name_exists(self, sample_name):
+    #     self.sampleMetadata.sample_name_exists(sample_name)
 
-    def sample_to_colour(self, sample_name):
-        try:
-            colour = self._get_integer(sample_name)
-            if colour < 0:
-                return None
-            else:
-                return colour
-        except KeyError:
-            return None
+    # def sample_to_colour(self, sample_name):
+    #     try:
+    #         colour = self._get_integer(sample_name)
+    #         if colour < 0:
+    #             return None
+    #         else:
+    #             return colour
+    #     except KeyError:
+    #         return None
 
-    def colour_to_sample(self, colour):
-        ## Ignores deleted samples
-        sample_name = self._get_string(colour)
-        return sample_name
+    # def colour_to_sample(self, colour):
+    #     ## Ignores deleted samples
+    #     sample_name = self._get_string(colour)
+    #     return sample_name
 
-    def samples_to_colours(self, sample_names):
-        return {
-            s: self.sample_to_colour(s)
-            for s in sample_names
-            if self.sample_to_colour(s) is not None
-        }
+    # def samples_to_colours(self, sample_names):
+    #     return {
+    #         s: self.sample_to_colour(s)
+    #         for s in sample_names
+    #         if self.sample_to_colour(s) is not None
+    #     }
 
-    def colours_to_samples(self, colours):
-        return {
-            c: self.colour_to_sample(c) for c in colours if self.colour_to_sample(c)
-        }
+    # def colours_to_samples(self, colours):
+    #     return {
+    #         c: self.colour_to_sample(c) for c in colours if self.colour_to_sample(c)
+    #     }
 
-    def merge_metadata(self, sm):
-        for c in range(sm.num_samples):
-            sample = sm.colour_to_sample(c)
-            try:
-                self.add_sample(sample)
-            except ValueError:
-                self.add_sample(sample + "_duplicate_in_merge")
+    # def merge_metadata(self, sm):
+    #     for c in range(sm.num_samples):
+    #         sample = sm.colour_to_sample(c)
+    #         try:
+    #             self.add_sample(sample)
+    #         except ValueError:
+    #             self.add_sample(sample + "_duplicate_in_merge")
 
-    def _set_integer(self, key, value):
-        _key = self._add_key_prefix(key)
-        self.storage.set_integer(_key, value)
+    # def _set_integer(self, key, value):
+    #     _key = self._add_key_prefix(key)
+    #     self.storage.set_integer(_key, value)
 
-    def _get_integer(self, key):
-        _key = self._add_key_prefix(key)
-        return self.storage.get_integer(_key)
+    # def _get_integer(self, key):
+    #     _key = self._add_key_prefix(key)
+    #     return self.storage.get_integer(_key)
 
-    def _set_string(self, key, value):
-        _key = self._add_key_prefix(key)
-        self.storage.set_string(_key, value)
+    # def _set_string(self, key, value):
+    #     _key = self._add_key_prefix(key)
+    #     self.storage.set_string(_key, value)
 
-    def _get_string(self, key):
-        _key = self._add_key_prefix(key)
-        return self.storage.get_string(_key)
+    # def _get_string(self, key):
+    #     _key = self._add_key_prefix(key)
+    #     return self.storage.get_string(_key)
 
-    def _incr(self, key):
-        _key = self._add_key_prefix(key)
-        return self.storage.incr(_key)
+    # def _incr(self, key):
+    #     _key = self._add_key_prefix(key)
+    #     return self.storage.incr(_key)
 
-    def _set_sample_colour(self, sample_name, colour):
-        self._set_integer(sample_name, colour)
+    # def _set_sample_colour(self, sample_name, colour):
+    #     self._set_integer(sample_name, colour)
 
-    def _set_colour_sample(self, colour, sample_name):
-        self._set_string(colour, sample_name)
+    # def _set_colour_sample(self, colour, sample_name):
+    #     self._set_string(colour, sample_name)
 
-    def _increment_colour_count(self):
-        return self._incr(self.colour_count_key)
+    # def _increment_colour_count(self):
+    #     return self._incr(self.colour_count_key)
 
-    def _add_key_prefix(self, key):
-        return ":".join(["metadata", str(key)])
+    # def _add_key_prefix(self, key):
+    #     return ":".join(["metadata", str(key)])
 
-    def _validate_sample_name(self, sample_name):
-        if sample_name == DELETION_SPECIAL_SAMPLE_NAME:
-            raise ValueError(
-                "You can't call a sample %s" % DELETION_SPECIAL_SAMPLE_NAME
-            )
-        if self.sample_name_exists(sample_name):
-            raise ValueError("You can't insert two samples with the same name")
+    # def _validate_sample_name(self, sample_name):
+    #     if sample_name == DELETION_SPECIAL_SAMPLE_NAME:
+    #         raise ValueError(
+    #             "You can't call a sample %s" % DELETION_SPECIAL_SAMPLE_NAME
+    #         )
+    #     if self.sample_name_exists(sample_name):
+    #         raise ValueError("You can't insert two samples with the same name")
 
-    def create(storage, bloomfilters, bloomfilter_size, num_hashes, lowmem=False):
-        bloomfilters = [
-            bf.bitarray if isinstance(bf, BloomFilter) else bf for bf in bloomfilters
-        ]
-        storage.set_integer(BLOOMFILTER_SIZE_KEY, bloomfilter_size)
-        storage.set_integer(NUM_HASH_FUNCTS_KEY, num_hashes)
+    # def create(storage, bloomfilters, bloomfilter_size, num_hashes, lowmem=False):
+    #     bloomfilters = [
+    #         bf.bitarray if isinstance(bf, BloomFilter) else bf for bf in bloomfilters
+    #     ]
+    #     storage.set_integer(BLOOMFILTER_SIZE_KEY, bloomfilter_size)
+    #     storage.set_integer(NUM_HASH_FUNCTS_KEY, num_hashes)
 
-        rows = transpose(bloomfilters, lowmem=lowmem)
+    #     rows = transpose(bloomfilters, lowmem=lowmem)
 
-        bitmatrix = BitMatrix.create(
-            storage, rows, num_rows=bloomfilter_size, num_cols=len(bloomfilters)
-        )
-        return BIGSI(storage)
+    #     bitmatrix = BitMatrix.create(
+    #         storage, rows, num_rows=bloomfilter_size, num_cols=len(bloomfilters)
+    #     )
+    #     return BIGSI(storage)
 
-    def lookup(self, kmers, remove_trailing_zeros=True):
-        if isinstance(kmers, str):
-            kmers = [kmers]
-        kmers=set(kmers)
-        kmer_to_hashes = self.__kmers_to_hashes(kmers)
-        hashes = {h for sublist in kmer_to_hashes.values() for h in sublist}
-        rows = self.__batch_get_rows(hashes, remove_trailing_zeros)
-        return self.__bitwise_and_kmers(kmer_to_hashes, rows)
+    # def lookup(self, kmers, remove_trailing_zeros=True):
+    #     if isinstance(kmers, str):
+    #         kmers = [kmers]
+    #     kmers=set(kmers)
+    #     kmer_to_hashes = self.__kmers_to_hashes(kmers)
+    #     hashes = {h for sublist in kmer_to_hashes.values() for h in sublist}
+    #     rows = self.__batch_get_rows(hashes, remove_trailing_zeros)
+    #     return self.__bitwise_and_kmers(kmer_to_hashes, rows)
 
-    def insert_bloom(self, bloomfilter, column_index):
-        self.bitmatrix.insert_column(bloomfilter, column_index)
+    # def insert_bloom(self, bloomfilter, column_index):
+    #     self.bitmatrix.insert_column(bloomfilter, column_index)
 
-    def merge_indexes(self, ksi):
-        for i in range(self.bloomfilter_size):
-            r1 = self.bitmatrix.get_row(i)
-            r2 = ksi.bitmatrix.get_row(i)
-            r1.extend(r2)
-            self.bitmatrix.set_row(i, r1)
-        self.bitmatrix.set_num_cols(self.bitmatrix.num_cols + ksi.bitmatrix.num_cols)
+    # def merge_indexes(self, ksi):
+    #     for i in range(self.bloomfilter_size):
+    #         r1 = self.bitmatrix.get_row(i)
+    #         r2 = ksi.bitmatrix.get_row(i)
+    #         r1.extend(r2)
+    #         self.bitmatrix.set_row(i, r1)
+    #     self.bitmatrix.set_num_cols(self.bitmatrix.num_cols + ksi.bitmatrix.num_cols)
 
-    def __kmers_to_hashes(self, kmers):
-        d = {}
-        for k in set(kmers):
-            d[k] = set(
-                generate_hashes(
-                    convert_query_kmer(k), self.num_hashes, self.bloomfilter_size
-                )
-            )  ## use canonical kmer to generate lookup, but report query kmer
-        return d
+    # def __kmers_to_hashes(self, kmers):
+    #     d = {}
+    #     for k in set(kmers):
+    #         d[k] = set(
+    #             generate_hashes(
+    #                 convert_query_kmer(k), self.num_hashes, self.bloomfilter_size
+    #             )
+    #         )  ## use canonical kmer to generate lookup, but report query kmer
+    #     return d
 
-    def __batch_get_rows(self, row_indexes, remove_trailing_zeros=False):
-        return dict(zip(row_indexes, self.bitmatrix.get_rows(row_indexes, remove_trailing_zeros=remove_trailing_zeros)))
+    # def __batch_get_rows(self, row_indexes, remove_trailing_zeros=False):
+    #     return dict(zip(row_indexes, self.bitmatrix.get_rows(row_indexes, remove_trailing_zeros=remove_trailing_zeros)))
 
-    def __bitwise_and_kmers(self, kmer_to_hashes, rows):
-        d = {}
-        for k, hashes in kmer_to_hashes.items():
-            subset_rows = [rows[h] for h in hashes]
-            d[k] = bitwise_and(subset_rows)
-        return d
+    # def __bitwise_and_kmers(self, kmer_to_hashes, rows):
+    #     d = {}
+    #     for k, hashes in kmer_to_hashes.items():
+    #         subset_rows = [rows[h] for h in hashes]
+    #         d[k] = bitwise_and(subset_rows)
+    #     return d

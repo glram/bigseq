@@ -19,7 +19,7 @@ class SampleMetadata:
             return 0
 
     def _add_key_prefix(self, key: str) -> str:
-        return ":".join(["metadata", str(key)])=
+        return ":".join(["metadata", str(key)])
 
     def _set_integer(self, key: str, value: int):
         _key = self._add_key_prefix(key)
@@ -60,14 +60,14 @@ class SampleMetadata:
     def _validate_sample_name(self, sample_name: str):
         if sample_name == DELETION_SPECIAL_SAMPLE_NAME:
             raise ValueError(
-                f'You can't call a sample {DELETION_SPECIAL_SAMPLE_NAME}'
+                f'You cant call a sample {DELETION_SPECIAL_SAMPLE_NAME}'
             )
         if self.sample_name_exists(sample_name):
             raise ValueError("You can't insert two samples with the same name")
 
     def add_sample(self, sample_name: str):
         self._validate_sample_name(sample_name)
-        colour = num_samples()
+        colour = self.num_samples()
         self._set_sample_colour(sample_name, colour)
         self._set_colour_sample(colour, sample_name)
         return self._increment_colour_count()
