@@ -5,3 +5,12 @@ def bitwise_and(bitarrays) -> bitarray:
     for i in range(1, len(bitarrays)):
       ret = ret & bitarrays[i]
     return ret
+
+def convert_query_kmer(k):
+    rev = ~k
+    return k if k.x > rev.x else rev
+
+def non_zero_bitarray_positions(x: bitarray):
+  for i, v in enumerate(x):
+    if v:
+      yield i
