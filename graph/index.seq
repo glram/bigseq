@@ -3,14 +3,10 @@
 from ..bloomfilter import generate_hashes, BloomFilter
 from ..matrix import transpose, BitMatrix
 from ..storage import BerkeleyDBStorage
-from ..utils.fncts import bitwise_and
+from ..utils.fncts import bitwise_and, convert_query_kmer
 
 BLOOMFILTER_SIZE_KEY = "ksi:bloomfilter_size"
 NUM_HASH_FUNCTS_KEY = "ksi:num_hashes"
-
-def convert_query_kmer(k):
-    rev = ~k
-    return k if k.x > rev.x else rev
 
 class KmerSignatureIndex:
     storage: BerkeleyDBStorage
