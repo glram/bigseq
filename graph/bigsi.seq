@@ -1,8 +1,9 @@
 
 import math
-from python import constants
-#from ..decorators import convert_kmers_to_canonical
-from python import decorators
+#from python import constants
+from ..constants import DEFAULT_CONFIG
+from ..decorators import convert_kmers_to_canonical
+#from python import decorators
 from ..bloomfilter.bloomfilter import BloomFilter
 from ..utils.fncts import convert_query_kmer, non_zero_bitarray_positions, bitwise_and
 from ..storage import get_storage
