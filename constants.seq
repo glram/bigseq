@@ -1,4 +1,6 @@
 from bio import Kmer
+from utils.cortex import CTX
+from storage.berkeleydb import BerkeleyDbStorage
 
 DB_FILE_NAME = 'test.db'
 BLOOM_SIZE = 1000
@@ -7,3 +9,10 @@ NUM_HASHES = 3
 # DO NOT CHANGE INDIVIDUALLY
 KMER_SIZE = 31
 K = Kmer[31]
+
+def cortex(f):
+    for x in CTX[31](f):
+        yield x
+
+def get_storage() -> BerkeleyDbStorage:
+    return BerkeleyDbStorage(DB_FILE_NAME)

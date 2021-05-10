@@ -13,6 +13,7 @@ from index import KmerSignatureIndex
 from metadata import SampleMetadata
 from bio import seq, kmers
 from ..lib.bitarray import bitarray
+from ..utils.cortex import CTX
 
 
 BLOOMFILTER_SIZE_KEY = "ksi:bloomfilter_size"
@@ -119,9 +120,9 @@ class BIGSI:
         self.scorer = Scorer(self.sampleMetadata.num_samples())
 
     def bloom(kmers) -> bitarray:
-        kmers = [convert_query_kmer(k) for k in kmers]  ## Convert to canonical kmers
+        k = [convert_query_kmer(k) for k in kmers]  ## Convert to canonical kmers
         bloomfilter = BloomFilter(BLOOM_SIZE, NUM_HASHES)
-        bloomfilter.update(kmers)
+        bloomfilter.update(k)
         return bloomfilter.bitarr
 
     def build(storage: BerkeleyDBStorage, bloomfilters, samples) -> BIGSI:
@@ -230,14 +231,5 @@ class BIGSI:
         self.merge_indexes(bigsi)
         self.merge_metadata(bigsi)
 
-storage = BerkeleyDBStorage(DB_FILE_NAME)
-
-bf1 = []
-s'ACGTACGTACGTACGTACGTACGTACGTACGACGTACGTACGTACGTGAGTACGTACGTACG' |> kmers[K](1) |> bf1.append
-print bf1
-bloomfilter1 = BIGSI.bloom(bf1)
-bloomfilter2 = BIGSI.bloom([k'ACGTACGTACGTACGTGAGTACGTACGTACG'])
-big = BIGSI.build(storage, [bloomfilter1, bloomfilter2], ['a', 'b'])
-print big.search('ACGTACGTACGTACGTACGTACGTACGTACG')
-print big.search('ACGTACGTACGTACGTGAGTACGTACGTACG')
-print big.search('TCGTACGTACGTACGTGAGTACGTACGTACG')
+storage = get_storage()
+bloomfilter1 = BIGSI.bloom(cortex('test.ctx'))
