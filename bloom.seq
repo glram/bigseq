@@ -4,11 +4,10 @@ from lib import bytearray
 from bloomfilter import BloomFilter
 from bio import FASTA, seqs, Kmer, kmers
 from utils.cortex import CTX
+from constants import K
 
-K = Kmer[31]
-
-# right now: seqc run bloom.seq .ctx output 
-# desired: seqc run bigseq.seq bloom .ctx output 
+# right now: seqc run bloom.seq .ctx output
+# desired: seqc run bigseq.seq bloom .ctx output
 # desired: seqc run bigseq.seq build ...
 # desired: seqc run bigseq.seq search string
 

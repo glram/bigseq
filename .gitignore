@@ -33,6 +33,7 @@
 
 # Python
 */__pycache__
+__pycache__
 
 # Inputs/Outputs
 *.fa
@@ -41,3 +42,5 @@
 *.ctx
 
 *.bloom
+*.pyc
+*.db

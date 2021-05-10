@@ -14,22 +14,17 @@ class KmerSignatureIndex:
     bloomfilter_size: int
     num_hashes: int
 
-    def __init__(self, storage):
+    def __init__(self, storage: BerkeleyDBStorage):
         self.storage = storage
         self.bitmatrix = BitMatrix(storage)
         self.bloomfilter_size = storage.get_integer(BLOOMFILTER_SIZE_KEY)
         self.num_hashes = storage.get_integer(NUM_HASH_FUNCTS_KEY)
 
-    def create(storage, bloomfilters, bloomfilter_size: int, num_hashes: int):
-        bloomfilters = [
-            bf.bitarray if isinstance(bf, BloomFilter) else bf for bf in bloomfilters
-        ]
+    def create(storage: BerkeleyDBStorage, bloomfilters, bloomfilter_size: int, num_hashes: int):
         storage.set_integer(BLOOMFILTER_SIZE_KEY, bloomfilter_size)
         storage.set_integer(NUM_HASH_FUNCTS_KEY, num_hashes)
         rows = transpose(bloomfilters)
-        bitmatrix = BitMatrix.create(
-            storage, rows, num_rows=bloomfilter_size, num_cols=len(bloomfilters)
-        )
+        bitmatrix = BitMatrix.create(storage, rows, num_rows=bloomfilter_size, num_cols=len(bloomfilters))
         return KmerSignatureIndex(storage)
 
     def __batch_get_rows(self, row_indexes, remove_trailing_zeros=False):
@@ -53,10 +48,8 @@ class KmerSignatureIndex:
         return d
 
     def lookup(self, kmers, remove_trailing_zeros=True):
-        if isinstance(kmers, str):
-            kmers = [kmers]
-        kmers=set(kmers)
-        kmer_to_hashes = self.__kmers_to_hashes(kmers)
+        kmer_set = {k for k in kmers}
+        kmer_to_hashes = self.__kmers_to_hashes(kmer_set)
         hashes = {h for sublist in kmer_to_hashes.values() for h in sublist}
         rows = self.__batch_get_rows(hashes, remove_trailing_zeros)
         return self.__bitwise_and_kmers(kmer_to_hashes, rows)

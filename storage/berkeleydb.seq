@@ -135,7 +135,7 @@ class BerkeleyDBStorage:
             i += 1
             self.set_integer(key, i)
             return i
-        except KeyError:
+        except PyError:
             i = 1
             self.set_integer(key, i)
             return i

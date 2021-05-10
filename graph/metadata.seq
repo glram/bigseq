@@ -15,7 +15,7 @@ class SampleMetadata:
             # we could distinguish between the number of samples,
             # and the number of colours,
             # but it adds unuseful complexity
-        except KeyError:
+        except PyError:
             return 0
 
     def _add_key_prefix(self, key: str) -> str:
@@ -54,7 +54,7 @@ class SampleMetadata:
         try:
             self._get_integer(sample_name)
             return True
-        except KeyError:
+        except PyError:
             return False
 
     def _validate_sample_name(self, sample_name: str):
@@ -90,12 +90,12 @@ class SampleMetadata:
                 return None
             else:
                 return colour
-        except KeyError:
+        except PyError:
             return None
 
     def colour_to_sample(self, colour: int) -> str:
         ## Ignores deleted samples
-        sample_name = self._get_string(colour)
+        sample_name = self._get_string(str(colour))
         return sample_name
 
     def samples_to_colours(self, sample_names) -> Set[str]:
@@ -105,7 +105,7 @@ class SampleMetadata:
             if self.sample_to_colour(s) is not None
         }
 
-    def colours_to_samples(self, colours) -> Set[int]:
+    def colours_to_samples(self, colours) -> Dict[int, str]:
         return {
             c: self.colour_to_sample(c) for c in colours if self.colour_to_sample(c)
         }
@@ -115,5 +115,5 @@ class SampleMetadata:
             sample = sm.colour_to_sample(c)
             try:
                 self.add_sample(sample)
-            except ValueError:
+            except PyError:
                 self.add_sample(sample + "_duplicate_in_merge")

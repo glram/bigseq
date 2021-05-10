@@ -5,7 +5,7 @@ def remove_short_ones(s: bitarray) -> bitarray:
     if len(s) < 3:
         return s
 
-    ba = s.val
+    ba = s
     ba2 = ba.suffix(1)
     ba2.append(True)
     ba3 = ba2.suffix(1)
@@ -18,7 +18,7 @@ def tabulate_score(ss) -> Dict[int, List[int]]:
     for i in range(len(ss)):
         current = int(ss[i])
         if i < len(ss) - 1:
-            _next = ss[i+1]
+            _next = int(ss[i+1])
             cnt += 1
             if current != _next:
                 sc[current].append(cnt)
@@ -35,6 +35,7 @@ class Scorer:
     K_UNGAPPED: float
     LAMBDA_GAPPED: float
     K_GAPPED: float
+    kmer_adjust: int
 
     def __init__(self,
                  DB_SIZE: int,
@@ -58,16 +59,16 @@ class Scorer:
                         score_counter: Dict[int, List[int]],
                         convert: float) -> Dict[str, float]:
 
-        max_score = self.MATCH * sum(score_counter[1])
-        min_score = max_score
-        mean_score = min_score
+        max_score = float(self.MATCH * sum(score_counter[1]))
+        min_score = float(max_score)
+        mean_score = float(min_score)
 
         SNP_t = 31 + self.kmer_adjust  # correct for the 'remove_short_ones'
-        max_total_N_snps = 0
-        min_total_N_snps = 0
+        max_total_N_snps = 0.0
+        min_total_N_snps = 0.0
         for i in score_counter[0]:
             min_N_snps = float(i) / SNP_t
-            max_N_snps = (i - SNP_t) + 1
+            max_N_snps = float((i - SNP_t) + 1)
             if max_N_snps < min_N_snps:
                 max_N_snps = min_N_snps
             max_total_N_snps += max_N_snps
@@ -104,9 +105,9 @@ class Scorer:
         convert = seq_len / max_possible_score
         score_counter = tabulate_score(ss)
         score_dict = self.calculate_score(score_counter, convert)
-        score_dict["max_nident"] = seq_len - score_dict.get("min_mismatches")
-        score_dict["nident"] = seq_len - score_dict.get("mismatches")
-        score_dict["min_nident"] = seq_len - score_dict.get("max_mismatches")
+        score_dict["max_nident"] = seq_len - score_dict.get("min_mismatches", 0.0)
+        score_dict["nident"] = seq_len - score_dict.get("mismatches", 0.0)
+        score_dict["min_nident"] = seq_len - score_dict.get("max_mismatches", 0.0)
         score_dict["pident"] = 100 * float(score_dict["nident"]) / seq_len
         score_dict["max_pident"] = 100 * float(score_dict["max_nident"]) / seq_len
         score_dict["min_pident"] = 100 * float(score_dict["min_nident"]) / seq_len

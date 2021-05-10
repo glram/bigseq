@@ -4,6 +4,7 @@
 
 from ..lib.bitarray import bitarray
 from ..storage.berkeleydb import BerkeleyDBStorage
+from ..constants import DB_FILE_NAME
 
 NUM_ROWS_KEY = "number_of_rows"
 NUM_COLS_KEY = "number_of_cols"
@@ -89,26 +90,26 @@ class BitMatrix:
 
 
 
-storage = BerkeleyDBStorage('test_db')
+# storage = BerkeleyDBStorage(DB_FILE_NAME)
 
-rows = [
-        bitarray("001"),
-        bitarray("001"),
-        bitarray("111"),
-        bitarray("001"),
-        bitarray("111"),
-    ] * 5
+# rows = [
+#         bitarray("001"),
+#         bitarray("001"),
+#         bitarray("111"),
+#         bitarray("001"),
+#         bitarray("111"),
+#     ] * 5
 
-storage.delete_all()
-bm = BitMatrix.create(storage, rows, len(rows), len(rows[0]))
-bm.set_rows(range(25), rows)
-assert list(bm.get_rows(range(3))) == rows[:3]
-assert bm.get_column(0) == bitarray("00101" * 5)
-assert bm.get_column(2) == bitarray("1" * 25)
+# storage.delete_all()
+# bm = BitMatrix.create(storage, rows, len(rows), len(rows[0]))
+# bm.set_rows(range(25), rows)
+# assert list(bm.get_rows(range(3))) == rows[:3]
+# assert bm.get_column(0) == bitarray("00101" * 5)
+# assert bm.get_column(2) == bitarray("1" * 25)
 
-x: List[bitarray] = [
-    bitarray("00101" * 5),
-    bitarray("1" * 25),
-]
-y: List[bitarray] = [x for x in bm.get_columns([0, 2])]
-assert x == y
+# x: List[bitarray] = [
+#     bitarray("00101" * 5),
+#     bitarray("1" * 25),
+# ]
+# y: List[bitarray] = [x for x in bm.get_columns([0, 2])]
+# assert x == y

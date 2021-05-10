@@ -1,14 +1,9 @@
-import os
+from bio import Kmer
 
-DEFAULT_BERKELEY_DB_STORAGE_CONFIG = {"filename": "test-berkeleydb"}
+DB_FILE_NAME = 'test.db'
+BLOOM_SIZE = 1000
+NUM_HASHES = 3
 
-DEFAULT_PARAMETERS = {"k": 31, "m": 25 * 10 ** 6, "h": 3}
-
-DEFAULT_BERKELEY_DB_CONFIG = {
-    "storage-engine": "berkeleydb",
-    "storage-config": DEFAULT_BERKELEY_DB_STORAGE_CONFIG,
-    **DEFAULT_PARAMETERS,
-}
-
-DEFAULT_CONFIG = DEFAULT_BERKELEY_DB_CONFIG
-DEFAULT_NPROC = 4
+# DO NOT CHANGE INDIVIDUALLY
+KMER_SIZE = 31
+K = Kmer[31]

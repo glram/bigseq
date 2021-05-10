@@ -81,7 +81,7 @@ class bitarray:
 
     def suffix(self, s: int) -> bitarray:
         ret = bitarray(len(self) - s)
-        for i in range(s, len(s)):
+        for i in range(s, len(self)):
             ret[i - s] = self[i]
         return ret
 
@@ -104,6 +104,6 @@ class bitarray:
         for i in range(it_range):
             left = self.val[i] if i < len(self.val) else 0
             right = other.val[i] if i < len(other.val) else 0
-            ret[i] = left & right
+            ret.val[i] = left & right
 
         return ret

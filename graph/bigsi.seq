@@ -1,30 +1,33 @@
 
 import math
 #from python import constants
-from ..constants import DEFAULT_CONFIG
-from ..decorators import convert_kmers_to_canonical
+from ..constants import *
 #from python import decorators
 from ..bloomfilter.bloomfilter import BloomFilter
 from ..utils.fncts import convert_query_kmer, non_zero_bitarray_positions, bitwise_and
-from ..storage import get_storage
 from ..storage.berkeleydb import BerkeleyDBStorage
 from ..scoring.score import Scorer
 #from collections import OrderedDict
 from ..matrix.bitmatrix import BitMatrix
 from index import KmerSignatureIndex
 from metadata import SampleMetadata
+from bio import seq, kmers
+from ..lib.bitarray import bitarray
 
 
 BLOOMFILTER_SIZE_KEY = "ksi:bloomfilter_size"
 DELETION_SPECIAL_SAMPLE_NAME = "D3L3T3D"
+PERCENT_KMERS_FOUND_KEY = "percent_kmers_found"
+NUM_KMERS_KEY = "num_kmers"
+NUM_KMERS_FOUND_KEY = "num_kmers_found"
+SAMPLE_KEY = "sample_name"
+MIN_UNIQUE_KMERS_IN_QUERY = 0
 
 def validate_build_params(bloomfilters, samples):
     if not len(bloomfilters) == len(samples):
         raise ValueError(
             "There must be the same number of bloomfilters and sample names"
         )
-
-MIN_UNIQUE_KMERS_IN_QUERY = 0
 
 def unpack_and_sum(bitarrays) -> List[int]:
     cumsum = [0 for _ in range(len(bitarrays[0]))]
@@ -33,15 +36,14 @@ def unpack_and_sum(bitarrays) -> List[int]:
             cumsum[i] += int(c)
     return cumsum
 
-def unpack_and_cat(bitarrays) -> List[int]:
+def unpack_and_cat(bitarrays) -> List[List[int]]:
     return [[int(v) for v in ba] for ba in bitarrays]
 
 def chunks(l, n):
     n = max(1, n)
     return (l[i : i + n] for i in range(0, len(l), n))
 
-
-def unpack_and_sum_bitarrays(bitarrays, j):
+def unpack_and_sum_bitarrays(bitarrays):
     return unpack_and_sum(bitarrays)
     # if j <= 1:
     #     return unpack_and_sum(bitarrays)
@@ -53,7 +55,7 @@ def unpack_and_sum_bitarrays(bitarrays, j):
     #     return np.sum(res, axis=0)
 
 
-def unpack_and_cat_bitarrays(bitarrays, j):
+def unpack_and_cat_bitarrays(bitarrays):
     return unpack_and_cat(bitarrays)
     # if j <= 1:
     #     return unpack_and_cat(bitarrays)
@@ -64,22 +66,22 @@ def unpack_and_cat_bitarrays(bitarrays, j):
     #     p.close()
     #     return np.vstack(res)
 
+def seq_to_kmers(s: seq):
+    ret = Set[K]()
+    s |> kmers[K](1) |> convert_query_kmer |> ret.add
+    return ret
 
 #import json
 
-
 class BigsiQueryResult:
-    PERCENT_KMERS_FOUND_KEY: str
-    NUM_KMERS_KEY: str
-    NUM_KMERS_FOUND_KEY: str
-    SAMPLE_KEY: str
+    colour: int
+    sample_name: str
+    num_kmers_found: int
+    num_kmers: int
+    percent_kmers_found: float
+    score: Optional[Dict[str, float]]
 
-    def __init__(self, colour, sample_name, num_kmers_found, num_kmers):
-
-        PERCENT_KMERS_FOUND_KEY = "percent_kmers_found"
-        NUM_KMERS_KEY = "num_kmers"
-        NUM_KMERS_FOUND_KEY = "num_kmers_found"
-        SAMPLE_KEY = "sample_name"
+    def __init__(self, colour: int, sample_name: str, num_kmers_found: int, num_kmers: int):
         self.colour = colour
         self.sample_name = sample_name
         self.num_kmers_found = num_kmers_found
@@ -87,79 +89,82 @@ class BigsiQueryResult:
         self.percent_kmers_found = round(100 * float(num_kmers_found) / num_kmers, 2)
         self.score = None
 
-    def todict(self):
-        outd = {
-            self.PERCENT_KMERS_FOUND_KEY: self.percent_kmers_found,
-            self.NUM_KMERS_KEY: self.num_kmers,
-            self.NUM_KMERS_FOUND_KEY: self.num_kmers_found,
-            self.SAMPLE_KEY: self.sample_name,
-        }
-        if self.score:
-            outd.update(self.score)
+    def todict(self) -> Dict[str, str]:
+        outd = Dict[str, str]()
+        if self.score is not None:
+            outd = {k: str(self.score[k]) for k in self.score}
+        outd[PERCENT_KMERS_FOUND_KEY] = str(self.percent_kmers_found)
+        outd[NUM_KMERS_KEY] = str(self.num_kmers)
+        outd[NUM_KMERS_FOUND_KEY] = str(self.num_kmers_found)
+        outd[SAMPLE_KEY] = str(self.sample_name)
         return outd
 
-#    def tojson(self):
-#        return json.dumps(self.todict())
-
-#    def __repr__(self):
-#        return self.tojson()
-
-    def __eq__(self, ob):
+    def __eq__(self, ob: BigsiQueryResult):
         return self.todict() == ob.todict()
 
-    def add_score(self, score):
+    def add_score(self, score: Dict[str, float]):
         self.score = score
 
 # todo: figure out seq inheritance?
 class BIGSI:
     kmerSignatureIndex: KmerSignatureIndex
     sampleMetadata: SampleMetadata
+    storage: BerkeleyDBStorage
+    scorer: Scorer
 
-    def __init__(self, config=None):
-        if config is None:
-            config = constants.DEFAULT_CONFIG
-        self.config = config
-        self.storage = get_storage(config)
-        self.sampleMetadata = SampleMetadata.__init__(self, self.storage)
-        self.kmerSignatureIndex = KmerSignatureIndex.__init__(self, self.storage)
-        self.min_unique_kmers_in_query = (
-            MIN_UNIQUE_KMERS_IN_QUERY
-        )  ## TODO this can be inferred and set at build time
-        self.scorer = Scorer(self.num_samples)
+    def __init__(self, storage: BerkeleyDBStorage):
+        self.storage = storage
+        self.sampleMetadata = SampleMetadata(self.storage)
+        self.kmerSignatureIndex = KmerSignatureIndex(self.storage)
+        self.scorer = Scorer(self.sampleMetadata.num_samples())
 
-    def kmer_size(self):
-        return self.config["k"]
-
-    def nproc(self):
-        return self.config.get("nproc", constants.DEFAULT_NPROC)
-
-    def bloom(config, kmers):
-        kmers = convert_query_kmer(kmers)  ## Convert to canonical kmers
-        bloomfilter = BloomFilter(m=config["m"], h=config["h"])
+    def bloom(kmers) -> bitarray:
+        kmers = [convert_query_kmer(k) for k in kmers]  ## Convert to canonical kmers
+        bloomfilter = BloomFilter(BLOOM_SIZE, NUM_HASHES)
         bloomfilter.update(kmers)
-        return bloomfilter.bitarray
+        return bloomfilter.bitarr
 
-    def build(config, bloomfilters, samples):
-        storage = get_storage(config)
+    def build(storage: BerkeleyDBStorage, bloomfilters, samples) -> BIGSI:
         validate_build_params(bloomfilters, samples)
-
-        sm = SampleMetadata(storage).add_samples(samples)
-
-        ksi = KmerSignatureIndex.create(
-            storage,
-            bloomfilters,
-            config["m"],
-            config["h"],
-            config.get("low_mem_build", False),
-        )
+        SampleMetadata(storage).add_samples(samples)
+        ksi = KmerSignatureIndex.create(storage, bloomfilters, BLOOM_SIZE, NUM_HASHES)
         storage.close()  ## Need to delete LOCK files before re init
-        return BIGSI(config)
+        return BIGSI(storage)
 
-    def search(self, seq, threshold=1.0, score=False):
-        self.__validate_search_query(seq)
+    def __validate_search_query(self, sequence: seq) -> bool:
+        kmer_set = seq_to_kmers(sequence)
+
+        if len(kmer_set) > MIN_UNIQUE_KMERS_IN_QUERY:
+            return True
+        print(f"Query string should contain at least {MIN_UNIQUE_KMERS_IN_QUERY} unique kmers. Your query contained {len(kmers)} unique kmers, and as a result the false discovery rate may be high. In future this will become an error.")
+        return False
+
+    def get_sample_list(self, colours) -> List[int]:
+        colours_to_samples = self.sampleMetadata.colours_to_samples(colours)
+        return [colours_to_samples[i] for i in colours]
+
+    def exact_filter(self, kmers_to_colours) -> List[BigsiQueryResult]:
+        colours_with_all_kmers = [y for y in non_zero_bitarray_positions(
+            bitwise_and([x for x in kmers_to_colours.values()])
+        )]
+        samples = self.get_sample_list(colours_with_all_kmers)
+        return [
+            BigsiQueryResult(
+                colour=c,
+                sample_name=s,
+                num_kmers=len(kmers_to_colours),
+                num_kmers_found=len(kmers_to_colours),
+            )
+            for c, s in zip(colours_with_all_kmers, samples)
+        ]
+
+    def search(self, seq_str: str, threshold=1.0, score=False) -> List[Dict[str, str]]:
+        sequence = seq(seq_str)
+        self.__validate_search_query(sequence)
         assert threshold <= 1
-        kmers = list(self.seq_to_kmers(seq))
-        kmers_to_colours = self.lookup(kmers, remove_trailing_zeros=False)
+
+        kmers = list(seq_to_kmers(sequence))
+        kmers_to_colours = self.kmerSignatureIndex.lookup(kmers, remove_trailing_zeros=False)
         min_kmers = math.ceil(len(set(kmers)) * threshold)
         results = self.exact_filter(kmers_to_colours)
         if threshold == 1.0:
@@ -174,30 +179,11 @@ class BIGSI:
             if not r.sample_name == DELETION_SPECIAL_SAMPLE_NAME
         ]
 
-    def exact_filter(self, kmers_to_colours):
-        colours_with_all_kmers = non_zero_bitarray_positions(
-            bitwise_and(kmers_to_colours.values())
-        )
-        samples = self.get_sample_list(colours_with_all_kmers)
-        return [
-            BigsiQueryResult(
-                colour=c,
-                sample_name=s,
-                num_kmers=len(kmers_to_colours),
-                num_kmers_found=len(kmers_to_colours),
-            )
-            for c, s in zip(colours_with_all_kmers, samples)
-        ]
-
-    def get_sample_list(self, colours):
-        colours_to_samples = self.colours_to_samples(colours)
-        return [colours_to_samples[i] for i in colours]
-
-    def inexact_filter(self, kmers_to_colours, min_kmers):
+    def inexact_filter(self, kmers_to_colours, min_kmers) -> List[BigsiQueryResult]:
         num_kmers = unpack_and_sum_bitarrays(
-            list(kmers_to_colours.values()), self.nproc
+            [x for x in kmers_to_colours.values()]
         )
-        colours = range(self.num_samples)
+        colours = range(self.sampleMetadata.num_samples())
         colours_to_kmers_found = dict(zip(colours, num_kmers))
         colours_to_kmers_found_above_threshold = self.__colours_above_threshold(
             colours_to_kmers_found, min_kmers
@@ -205,7 +191,7 @@ class BIGSI:
         results = [
             BigsiQueryResult(
                 colour=colour,
-                sample_name=self.colour_to_sample(colour),
+                sample_name=self.sampleMetadata.colour_to_sample(colour),
                 num_kmers_found=int(num_kmers_found),
                 num_kmers=len(kmers_to_colours),
             )
@@ -216,11 +202,12 @@ class BIGSI:
 
     def score(self, kmers, kmers_to_colours, results):
         rows = [kmers_to_colours[kmer] for kmer in kmers]
-        X = unpack_and_cat_bitarrays(rows, self.nproc)
+        X = unpack_and_cat_bitarrays(rows)
         for res in results:
-            col = "".join([str(i) for i in X[:, res.colour].tolist()])
-            score_results = self.scorer.score(col)
-            score_results["kmer-presence"] = col
+            col = "".join([str(int(X[i][res.colour])) for i in range(len(X))])
+            ba = bitarray(col)
+            score_results = self.scorer.score(ba)
+            # score_results["kmer-presence"] = 'hi'
             res.add_score(score_results)
 
     def __colours_above_threshold(self, colours_to_percent_kmers, min_kmers):
@@ -243,164 +230,14 @@ class BIGSI:
         self.merge_indexes(bigsi)
         self.merge_metadata(bigsi)
 
-    def __validate_search_query(self, seq):
-        kmers = set()
-        for k in self.seq_to_kmers(seq):
-            kmers.add(k)
-            if len(kmers) > self.min_unique_kmers_in_query:
-                return True
+storage = BerkeleyDBStorage(DB_FILE_NAME)
 
-        else:
-            print("Query string should contain at least %i unique kmers. Your query contained %i unique kmers, and as a result the false discovery rate may be high. In future this will become an error."
-                % (self.min_unique_kmers_in_query, len(kmers)))
-
-
-    # def seq_to_kmers(self, seq):
-    #     return fncts.seq_to_kmers(seq, self.kmer_size)
-
-    # def colour_count_key(self):
-    #     self.sampleMetadata.colour_count_key()
-
-    # def num_samples(self):
-    #     self.sampleMetadata.num_samples()
-
-    # def add_sample(self, sample_name):
-    #     self.sampleMetadata.add_sample(sample_name)
-
-    # def add_samples(self, sample_names):
-    #     self.sampleMetadata.add_samples(sample_names)
-
-    # def delete_sample(self, sample_name):
-    #     self.sampleMetadata.delete_sample(sample_name)
-
-    # def sample_name_exists(self, sample_name):
-    #     self.sampleMetadata.sample_name_exists(sample_name)
-
-    # def sample_to_colour(self, sample_name):
-    #     try:
-    #         colour = self._get_integer(sample_name)
-    #         if colour < 0:
-    #             return None
-    #         else:
-    #             return colour
-    #     except KeyError:
-    #         return None
-
-    # def colour_to_sample(self, colour):
-    #     ## Ignores deleted samples
-    #     sample_name = self._get_string(colour)
-    #     return sample_name
-
-    # def samples_to_colours(self, sample_names):
-    #     return {
-    #         s: self.sample_to_colour(s)
-    #         for s in sample_names
-    #         if self.sample_to_colour(s) is not None
-    #     }
-
-    # def colours_to_samples(self, colours):
-    #     return {
-    #         c: self.colour_to_sample(c) for c in colours if self.colour_to_sample(c)
-    #     }
-
-    # def merge_metadata(self, sm):
-    #     for c in range(sm.num_samples):
-    #         sample = sm.colour_to_sample(c)
-    #         try:
-    #             self.add_sample(sample)
-    #         except ValueError:
-    #             self.add_sample(sample + "_duplicate_in_merge")
-
-    # def _set_integer(self, key, value):
-    #     _key = self._add_key_prefix(key)
-    #     self.storage.set_integer(_key, value)
-
-    # def _get_integer(self, key):
-    #     _key = self._add_key_prefix(key)
-    #     return self.storage.get_integer(_key)
-
-    # def _set_string(self, key, value):
-    #     _key = self._add_key_prefix(key)
-    #     self.storage.set_string(_key, value)
-
-    # def _get_string(self, key):
-    #     _key = self._add_key_prefix(key)
-    #     return self.storage.get_string(_key)
-
-    # def _incr(self, key):
-    #     _key = self._add_key_prefix(key)
-    #     return self.storage.incr(_key)
-
-    # def _set_sample_colour(self, sample_name, colour):
-    #     self._set_integer(sample_name, colour)
-
-    # def _set_colour_sample(self, colour, sample_name):
-    #     self._set_string(colour, sample_name)
-
-    # def _increment_colour_count(self):
-    #     return self._incr(self.colour_count_key)
-
-    # def _add_key_prefix(self, key):
-    #     return ":".join(["metadata", str(key)])
-
-    # def _validate_sample_name(self, sample_name):
-    #     if sample_name == DELETION_SPECIAL_SAMPLE_NAME:
-    #         raise ValueError(
-    #             "You can't call a sample %s" % DELETION_SPECIAL_SAMPLE_NAME
-    #         )
-    #     if self.sample_name_exists(sample_name):
-    #         raise ValueError("You can't insert two samples with the same name")
-
-    # def create(storage, bloomfilters, bloomfilter_size, num_hashes, lowmem=False):
-    #     bloomfilters = [
-    #         bf.bitarray if isinstance(bf, BloomFilter) else bf for bf in bloomfilters
-    #     ]
-    #     storage.set_integer(BLOOMFILTER_SIZE_KEY, bloomfilter_size)
-    #     storage.set_integer(NUM_HASH_FUNCTS_KEY, num_hashes)
-
-    #     rows = transpose(bloomfilters, lowmem=lowmem)
-
-    #     bitmatrix = BitMatrix.create(
-    #         storage, rows, num_rows=bloomfilter_size, num_cols=len(bloomfilters)
-    #     )
-    #     return BIGSI(storage)
-
-    # def lookup(self, kmers, remove_trailing_zeros=True):
-    #     if isinstance(kmers, str):
-    #         kmers = [kmers]
-    #     kmers=set(kmers)
-    #     kmer_to_hashes = self.__kmers_to_hashes(kmers)
-    #     hashes = {h for sublist in kmer_to_hashes.values() for h in sublist}
-    #     rows = self.__batch_get_rows(hashes, remove_trailing_zeros)
-    #     return self.__bitwise_and_kmers(kmer_to_hashes, rows)
-
-    # def insert_bloom(self, bloomfilter, column_index):
-    #     self.bitmatrix.insert_column(bloomfilter, column_index)
-
-    # def merge_indexes(self, ksi):
-    #     for i in range(self.bloomfilter_size):
-    #         r1 = self.bitmatrix.get_row(i)
-    #         r2 = ksi.bitmatrix.get_row(i)
-    #         r1.extend(r2)
-    #         self.bitmatrix.set_row(i, r1)
-    #     self.bitmatrix.set_num_cols(self.bitmatrix.num_cols + ksi.bitmatrix.num_cols)
-
-    # def __kmers_to_hashes(self, kmers):
-    #     d = {}
-    #     for k in set(kmers):
-    #         d[k] = set(
-    #             generate_hashes(
-    #                 convert_query_kmer(k), self.num_hashes, self.bloomfilter_size
-    #             )
-    #         )  ## use canonical kmer to generate lookup, but report query kmer
-    #     return d
-
-    # def __batch_get_rows(self, row_indexes, remove_trailing_zeros=False):
-    #     return dict(zip(row_indexes, self.bitmatrix.get_rows(row_indexes, remove_trailing_zeros=remove_trailing_zeros)))
-
-    # def __bitwise_and_kmers(self, kmer_to_hashes, rows):
-    #     d = {}
-    #     for k, hashes in kmer_to_hashes.items():
-    #         subset_rows = [rows[h] for h in hashes]
-    #         d[k] = bitwise_and(subset_rows)
-    #     return d
+bf1 = []
+s'ACGTACGTACGTACGTACGTACGTACGTACGACGTACGTACGTACGTGAGTACGTACGTACG' |> kmers[K](1) |> bf1.append
+print bf1
+bloomfilter1 = BIGSI.bloom(bf1)
+bloomfilter2 = BIGSI.bloom([k'ACGTACGTACGTACGTGAGTACGTACGTACG'])
+big = BIGSI.build(storage, [bloomfilter1, bloomfilter2], ['a', 'b'])
+print big.search('ACGTACGTACGTACGTACGTACGTACGTACG')
+print big.search('ACGTACGTACGTACGTGAGTACGTACGTACG')
+print big.search('TCGTACGTACGTACGTGAGTACGTACGTACG')
