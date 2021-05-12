@@ -1,0 +1,52 @@
+import sys
+import os.path
+from lib import bytearray
+from bloomfilter import BloomFilter
+from bio import FASTA, seqs, Kmer, kmers
+from utils.cortex import CTX
+from constants import K
+
+# right now: seqc run bloom.seq .ctx output
+# desired: seqc run bigseq.seq bloom .ctx output
+# desired: seqc run bigseq.seq build ...
+# desired: seqc run bigseq.seq search string
+
+def run():
+  if sys.argv[0]=='bloom': 
+    if len(sys.argv) != 3:
+      print 'Usage: seqc run bloom.seq <sequence> <out>'
+      return
+
+    fasta_file = sys.argv[1]
+    out_file = sys.argv[2]
+
+    bloom = BloomFilter(1000, 3)
+
+    CTX[31](fasta_file) |> bloom.add
+
+    bytes = bloom.bitarr.bytes()
+    with open(out_file, 'wb') as f:
+      f.write_gen(str(bytes[i]) for i in range(len(bytes)))
+
+  elif sys.argv[0]=='build': 
+    if len(sys.argv) != 3:
+      print 'Usage: seqc run bloom.seq <sequence> <out>'
+      return
+
+    fasta_file = sys.argv[1]
+    out_file = sys.argv[2]
+
+    bloom = BloomFilter(1000, 3)
+
+    CTX[31](fasta_file) |> bloom.add
+
+    bytes = bloom.bitarr.bytes()
+    with open(out_file, 'wb') as f:
+      f.write_gen(str(bytes[i]) for i in range(len(bytes)))
+
+  elif sys.argv[0]=='search':
+    if len(sys.argv) != 2:
+      print 'Usage: seqc run search.seq <string>'
+      return
+
+run()
