@@ -140,7 +140,7 @@ class BIGSI:
         print(f"Query string should contain at least {MIN_UNIQUE_KMERS_IN_QUERY} unique kmers. Your query contained {len(kmers)} unique kmers, and as a result the false discovery rate may be high. In future this will become an error.")
         return False
 
-    def get_sample_list(self, colours) -> List[int]:
+    def get_sample_list(self, colours) -> List[str]:
         colours_to_samples = self.sampleMetadata.colours_to_samples(colours)
         return [colours_to_samples[i] for i in colours]
 

@@ -3,7 +3,7 @@ from utils.cortex import CTX
 from storage.berkeleydb import BerkeleyDBStorage
 
 DB_FILE_NAME = 'test.db'
-BLOOM_SIZE = 1000
+BLOOM_SIZE = 250000
 NUM_HASHES = 3
 
 # DO NOT CHANGE INDIVIDUALLY

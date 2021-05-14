@@ -74,12 +74,10 @@ class GraphReader[N: int]:
     self._file.seek(payload_start, os.SEEK_SET)
 
   def decode_record(self, buff: str) -> Kmer[N]:
-    be = reversed(buff)
     x = UInt[N*2](0)
     for i in range(N):
-      x = x << UInt[N*2](2)
       m = (int(buff.ptr[i // 4]) >> ((i%4)*2)) & 3
-      x |= UInt[N*2](m)
+      x |= (UInt[N*2](m) << UInt[N*2](i*2))
     return Kmer[N](int(x))
 
   def read_next(self) -> Kmer[N]:
