@@ -43,7 +43,7 @@ def run():
       if sys.argv[i]=='-s':
         samples.append(sys.argv[i+1])
 
-    build_main(bloomfilter_paths, samples)
+    BIGSI.build(get_storage(), bloomfilter_paths, samples)
 
   elif sys.argv[0]=='search':
     if len(sys.argv) != 2:
