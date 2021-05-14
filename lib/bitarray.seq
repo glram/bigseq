@@ -12,8 +12,8 @@ class bitarray:
         self.sz = sz
         self.val = [int(0) for _ in range((sz + 63) // 64)]
 
-    def __init__(self, x: Array[byte]):
-        self.sz = len(x) * 8
+    def __init__(self, x: Array[byte], sz: int):
+        self.sz = sz
         self.val = List[int]()
 
         working = 0
@@ -107,3 +107,33 @@ class bitarray:
             ret.val[i] = left & right
 
         return ret
+
+    def file_header(self) -> str:
+        sz_in_bytes = Array[byte](8)
+        for i in range(8):
+            sz_in_bytes[i] = byte((self.sz >> (8*i)) & 255)
+        return 'ba' + ''.join(str(sz_in_bytes[i]) for i in range(8))
+
+    def to_file(self, filename: str):
+        bytes = self.bytes()
+        with open(filename, 'wb') as f:
+            f.write(self.file_header())
+            f.write_gen(str(bytes[i]) for i in range(len(bytes)))
+
+    def from_file(filename: str) -> bitarray:
+        with open(filename, 'rb') as f:
+            magic = f.read(2)
+            if magic != 'ba':
+                raise ValueError(filename + ' is not a valid bitarray file.')
+            sz_in_bytes = f.read(8).ptr
+
+            sz = 0
+            for i in range(8):
+                sz |= (int(sz_in_bytes[i]) << (i*8))
+
+            str = f.read((sz+63)//8)
+            bytes = Array[byte](len(str))
+            for i in range(len(str)):
+                bytes[i] = str.ptr[i]
+
+            return bitarray(bytes, sz)
