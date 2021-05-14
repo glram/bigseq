@@ -12,7 +12,7 @@ from constants import K
 # desired: seqc run bigseq.seq search string
 
 def run():
-  if sys.argv[0]=='bloom': 
+  if sys.argv[0]=='bloom':
     if len(sys.argv) != 3:
       print 'Usage: seqc run bloom <sequence> <out>'
       return
@@ -23,12 +23,9 @@ def run():
     bloom = BloomFilter(1000, 3)
 
     CTX[31](fasta_file) |> bloom.add
+    bloom.bitarr.to_file(out_file)
 
-    bytes = bloom.bitarr.bytes()
-    with open(out_file, 'wb') as f:
-      f.write_gen(str(bytes[i]) for i in range(len(bytes)))
-
-  elif sys.argv[0]=='build': 
+  elif sys.argv[0]=='build':
     if len(sys.argv)%2!=1:
       print 'Usage: seqc run build -b bloomfilter1 -b bloomfilter2 ...  -s sample1 -s sample2 ...'
       print 'same number of bloomfilters and samples must be passed in'
