@@ -72,13 +72,13 @@ def seq_to_kmers(s: seq):
     s |> kmers[K](1) |> convert_query_kmer |> ret.add
     return ret
 
-def load_bloomfilter(f):
-    ff = bloom_file_name(f)
-    logger.debug("Loading %s " % ff)
-    bloomfilter = bitarray()
-    with open(ff, "rb") as inf:
-        bloomfilter.from_file(inf)
-    return bloomfilter
+# def load_bloomfilter(f):
+#     ff = bloom_file_name(f)
+#     logger.debug("Loading %s " % ff)
+#     bloomfilter = bitarray()
+#     with open(ff, "rb") as inf:
+#         bloomfilter.from_file(inf)
+#     return bloomfilter
 
 #import json
 
