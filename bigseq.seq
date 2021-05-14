@@ -4,7 +4,9 @@ from lib import bytearray
 from bloomfilter import BloomFilter
 from bio import FASTA, seqs, Kmer, kmers
 from utils.cortex import CTX
-from constants import K
+from constants import K, get_storage
+from graph.bigsi import BIGSI
+from lib.bitarray import bitarray
 
 # right now: seqc run bloom.seq .ctx output
 # desired: seqc run bigseq.seq bloom .ctx output
@@ -12,41 +14,43 @@ from constants import K
 # desired: seqc run bigseq.seq search string
 
 def run():
-  if sys.argv[0]=='bloom':
-    if len(sys.argv) != 3:
+  args = sys.argv[1:]
+  if len(args) == 0:
+    return
+
+  if args[0]=='bloom':
+    if len(args) != 3:
       print 'Usage: seqc run bloom <sequence> <out>'
       return
 
-    fasta_file = sys.argv[1]
-    out_file = sys.argv[2]
+    ctx_file = args[1]
+    out_file = args[2]
 
-    bloom = BloomFilter(1000, 3)
+    BIGSI.bloom(CTX[31](ctx_file)).to_file(out_file)
 
-    CTX[31](fasta_file) |> bloom.add
-    bloom.bitarr.to_file(out_file)
-
-  elif sys.argv[0]=='build':
-    if len(sys.argv)%2!=1:
+  elif args[0]=='build':
+    if len(args)%2!=1:
       print 'Usage: seqc run build -b bloomfilter1 -b bloomfilter2 ...  -s sample1 -s sample2 ...'
       print 'same number of bloomfilters and samples must be passed in'
       return
     bloomfilter_paths = []
-    for i in range(len(sys.argv)):
-      if sys.argv[i]=='-b':
-        bloomfilter_paths.append(sys.argv[i+1])
+    for i in range(len(args)):
+      if args[i]=='-b':
+        bloomfilter_paths.append(args[i+1])
 
     samples = []
-    for i in range(len(sys.argv)):
-      if sys.argv[i]=='-s':
-        samples.append(sys.argv[i+1])
+    for i in range(len(args)):
+      if args[i]=='-s':
+        samples.append(args[i+1])
 
-    BIGSI.build(get_storage(), bloomfilter_paths, samples)
+    BIGSI.build(get_storage(), [bitarray.from_file(x) for x in bloomfilter_paths], samples)
 
-  elif sys.argv[0]=='search':
-    if len(sys.argv) != 2:
+  elif args[0]=='search':
+    if len(args) != 2:
       print 'Usage: seqc run search.seq <string>'
       return
-    return search(sys.argv[1])
+    print BIGSI(get_storage()).search(args[1])
+    # return search(args[1])
 
 
 run()

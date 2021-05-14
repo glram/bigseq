@@ -96,7 +96,7 @@ class BerkeleyDBStorage:
         self.batch_set(_keys, (bytearray_to_str(v.bytes()) for v in values))
 
     def load_bitarray(self, _bytes: str) -> bitarray:
-        return bitarray(str_to_bytearray(_bytes))
+        return bitarray(str_to_bytearray(_bytes), len(_bytes)*8)
 
     def get_bitarray(self, key: str) -> bitarray:
         _key = self.convert_to_bitarray_key(key)
