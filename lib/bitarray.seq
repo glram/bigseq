@@ -73,6 +73,16 @@ class bitarray:
                 w = w >> 8
         return ret
 
+    def byte_str(self) -> str:
+        p = Ptr[byte](len(self.val) * 8)
+        for i, b in enumerate(self.val):
+            s = i*8
+            w = b
+            for off in range(8):
+                p[s+off] = byte(w & 255)
+                w = w >> 8
+        return str(p, len(self.val) * 8)
+
     def prefix(self, s: int) -> bitarray:
         ret = bitarray(s)
         for i in range(s):

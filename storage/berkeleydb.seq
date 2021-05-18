@@ -5,9 +5,35 @@ from python import bsddb3.db
 from python import gc
 from python import os
 
+from internal.python import LD
+from C import LD.PyUnicode_Decode(cobj, int, cobj, cobj) -> cobj
+# from C import LD.PyBytes_Size(cobj) -> int
+
+import time
+
+def str_to_py(s: str) -> pyobj:
+    return pyobj.exc_wrap(pyobj(PyUnicode_Decode(s.ptr, s.len, 
+        'utf-8'.c_str(), 'surrogateescape'.c_str())))
+
+def py_to_str(s: pyobj) -> str:
+    return s.to_str('surrogateescape')
+
 @python
 def none():
     return None
+
+@python
+def py_set(storage, key, val):
+    storage[key.encode('utf-8', 'surrogateescape')] = val.encode('utf-8', 'surrogateescape')
+
+@python
+def py_get(storage, key):
+    return storage[key.encode('utf-8', 'surrogateescape')].decode('utf-8', 'surrogateescape')
+
+@python
+def py_set_batch(storage, keys, vals):
+    for i, k in enumerate(keys):
+        storage[k.encode('utf-8', 'surrogateescape')] = vals[i].encode('utf-8', 'surrogateescape')
 
 class BerkeleyDBStorage:
     storage: pyobj
@@ -36,10 +62,10 @@ class BerkeleyDBStorage:
         self.storage.sync()
 
     def __setitem__(self, key: str, val: str):
-        self.storage._getattr("__setitem__")(key.__to_py__().encode('utf-8'), val.__to_py__().encode('utf-8'))
+        py_set(self.storage, str_to_py(key), str_to_py(val))
 
     def __getitem__(self, key: str) -> str:
-        return str(self.storage[key.__to_py__().encode('utf-8')].decode('utf-8'))
+        return py_to_str(py_get(self.storage, str_to_py(key)))
 
     def convert_to_integer_key(self, key: str) -> str:
         return key + ":int"
@@ -57,8 +83,7 @@ class BerkeleyDBStorage:
         return (self.convert_to_bitarray_key(key) for key in keys)
 
     def batch_set(self, keys, values):
-        for k, v in zip(keys, values):
-            self[k] = v
+        py_set_batch(self.storage, [str_to_py(x) for x in keys], [str_to_py(x) for x in values])
 
     def batch_get(self, keys) -> List[str]:
         return [self[k] for k in keys]
@@ -89,11 +114,11 @@ class BerkeleyDBStorage:
 
     def set_bitarray(self, key: str, value: bitarray):
         _key = self.convert_to_bitarray_key(key)
-        self[_key] = bytearray_to_str(value.bytes())
+        self[_key] = value.byte_str()
 
     def set_bitarrays(self, keys, values):
         _keys = self.convert_bitarray_batch_keys(keys)
-        self.batch_set(_keys, (bytearray_to_str(v.bytes()) for v in values))
+        self.batch_set(_keys, (v.byte_str() for v in values))
 
     def load_bitarray(self, _bytes: str) -> bitarray:
         return bitarray(str_to_bytearray(_bytes), len(_bytes)*8)
